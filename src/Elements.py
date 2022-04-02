@@ -8,6 +8,7 @@ from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from src.FirstOrder import Identity
+from Inference import BinaryOperator
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
@@ -89,13 +90,8 @@ class Vector:
         """
         return Vector([a / b for a, b in zip(self.vector, other.vector)])
 
-    
-
-def BinOp(a: object, b: object) -> object:
-    pass
-
 class AlgebraicStructure(set, Generic[T]):
-    """A class for representing an algebraic structure. Algebraic structure is a set of elements
+    """Algebraic structure is a set of elements
        with binary operations on it and identities that those operations satisfy.
     """
     def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], identities: set[Identity]):
@@ -104,6 +100,13 @@ class AlgebraicStructure(set, Generic[T]):
         :param operations: A set of binary operations
         :param identities: A set of identities
         """
+
+        for element in elements:
+            for operation in operations:
+                for identity in identities:
+                    if identity(operation(element, element)) != element:
+                        raise ValueError("Identity {} does not satisfy operation {}".format(identity, operation))
+        
         self.elements = elements
         self.operations = operations
         self.identities = identities
@@ -122,17 +125,26 @@ class AlgebraicStructure(set, Generic[T]):
         return "for all {},\n {}\n identities = {})".format(self.elements, self.operations, self.identities)
 
 class Group(AlgebraicStructure[T], Generic[T]):
-    """A class for representing a group. A group is a set of elements with a single binary operation and predefined identities."""
-    
-        
+    """A group is a set of elements 
+       with a single binary operation on it and identities that this operation satisfies.
+    """
+    def __init__(self, elements: set[T], operation: Callable[[T, T], T]):
+        """
+        :param elements: A set of elements
+        :param operation: A binary operation
+        """
+        super().__init__(elements, {operation}, 
+        {lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z)), 
+        lambda x, y: operation(x, y) == operation(y, x) == y,
+        lambda x, y: operation(x, y) == x,})
 
-    
+        # TODO: Add axioms
 
     def __str__(self):
-        return "Group(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+        return "G = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
 
     def __repr__(self):
-        return self.__str__()
+        return "Group(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
 
     def __eq__(self, other):
         return self.elements == other.elements and self.operations == other.operations and self.identities == other.identities
@@ -172,7 +184,7 @@ class Group(AlgebraicStructure[T], Generic[T]):
 class Field(AlgebraicStructure[T], Generic[T]):
     """A class for representing a field. A field is a set of elements with binary operations of addition and multiplication, and identities
     """
-    def __init__(self, elements: List[T], operations: List[Tuple[T, T, T]], identities: List[T]):
+    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], identities: set[Identity]):
         """
         :param elements: A list of elements in the field
         :param operations: A list of tuples of the form (a, b, c) where a, b, c are elements in the field and a*b = c
