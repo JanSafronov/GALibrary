@@ -29,6 +29,10 @@ class Identity(Generic[V], Lambda, ABC):
     def __call__(self, *args):
         return self.formula(*args)
 
+    def is_true(self):
+        for var in self.variables:
+            self.formula(var)
+
     def __repr__(self):
         return "Identity({}, {})".format(self.variables, self.formula)
 
