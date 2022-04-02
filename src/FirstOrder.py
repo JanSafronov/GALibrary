@@ -7,14 +7,14 @@ from ast import Lambda, Set, Tuple
 from dataclasses import Field
 from pyclbr import Function
 import sys
-from typing import List, TypeVar, Generic
+from typing import Callable, List, TypeVar, Generic
 from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 V = TypeVar("V")
 
-class Identity(Generic[V]):
+class Identity(Generic[V], Lambda, ABC):
     """
     Identity is a true universally quantified formula.
     """
@@ -25,6 +25,12 @@ class Identity(Generic[V]):
         """
         self.variables = variables
         self.formula = formula
+
+    def __call__(self, *args):
+        return self.formula(*args)
+
+    def __repr__(self):
+        return "Identity({}, {})".format(self.variables, self.formula)
 
     def __str__(self):
         return "for all {} : {}".format(self.variables, self.formula)
