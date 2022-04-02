@@ -8,7 +8,7 @@ from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from src.FirstOrder import Identity
-from Inference import BinaryOperator
+from Inference import BinaryOperator, Commutative
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
@@ -121,12 +121,39 @@ class AlgebraicStructure(set, Generic[T]):
         """
         return {operation(a_, b_) for a_ in a for b_ in b}
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "for all {},\n {}\n identities = {})".format(self.elements, self.operations, self.identities)
 
+class Monoid(AlgebraicStructure[T], Generic[T]):
+    """
+    A monoid is a set of elements 
+    with a binary operation on it and identities that those operations satisfy.
+    """
+    def __init__(self, elements: set[T], operation: Callable[[T, T], T]):
+        """
+        :param elements: A set of elements
+        :param operation: A binary operations
+        """
+        super.__init__(self, elements, {operation}, 
+        {lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z)),
+        lambda x, e: operation(x, e) == operation(e, x) == e})
+
+    def __str__(self) -> str:
+        return "M = {}, {}\n {})".format(self.elements, self.operations, self.identities)
+
+    def __repr__(self) -> str:
+        return "Monoid(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+
+    def get_identities(self) -> set[Identity]:
+        """
+        :return: The set of identities defining the monoid
+        """
+        return self.identities
+
 class Group(AlgebraicStructure[T], Generic[T]):
-    """A group is a set of elements 
-       with a single binary operation on it and identities that this operation satisfies.
+    """
+    A group is a set of elements 
+    with a binary operation on it and identities that this operation satisfies.
     """
     def __init__(self, elements: set[T], operation: Callable[[T, T], T]):
         """
@@ -135,16 +162,19 @@ class Group(AlgebraicStructure[T], Generic[T]):
         """
         super().__init__(elements, {operation}, 
         {lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z)), 
-        lambda x, y: operation(x, y) == operation(y, x) == y,
-        lambda x, y: operation(x, y) == x,})
+        lambda x, e, y: operation(x, e) == operation(e, x) == x and operation(x, y) == operation(y, x) == e})
 
-        # TODO: Add axioms
-
-    def __str__(self):
+    def __str__(self) -> str:
         return "G = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Group(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+
+    def get_identities(self) -> set[Identity]:
+        """
+        :return: The set of identities defining the group
+        """
+        return self.identities
 
     def __eq__(self, other):
         return self.elements == other.elements and self.operations == other.operations and self.identities == other.identities
@@ -179,6 +209,75 @@ class Group(AlgebraicStructure[T], Generic[T]):
             raise ValueError("The groups are not the same")
         if self.operations != other.operations:
             raise ValueError("The groups are not the same")
+
+    def is_abelian(self) -> bool:
+        """
+        :return: True if the group is abelian, False otherwise
+        """
+        for x in self.elements:
+            for y in self.elements:
+                if (self.operations[0](x, y) != self.operations[0](y, x)):
+                    return False
+            
+
+    def abelian(self) -> "Group":
+        """
+        :return: The abelian group of the group
+        """
+        if self.is_abelian():
+            new = Group(self.elements, self.operations[0])
+            new.identities.add(lambda x, y: self.operations[0](x, y) == self.operations[0](y, x))
+            return new
+        else:
+            return Group(self.elements, self.operations[0])
+
+class Ring(AlgebraicStructure[T], Generic[T]):
+    """A ring is a set of elements 
+       with a single binary operation on it and identities that this operation satisfies.
+    """
+    def __init__(self, elements: set[T], operations: Set[Callable[[T, T], T]]):
+        """
+        :param elements: A set of elements
+        :param operations: A set of binary operations that are associative
+        """
+        super().__init__(elements, operations, 
+        Group(elements, operations[0]).abelian().get_identities() | Monoid(elements, operations[1]).get_identities() |
+        {Commutative.__call__(self.operations[1])})
+
+    def __str__(self):
+        return "R = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
+
+    def __repr__(self):
+        return "Ring(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+
+    def __eq__(self, other):
+        return self.elements == other.elements and self.operations == other.operations and self.identities == other.identities
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, element):
+        return element in self.elements
+
+    def __iter__(self):
+        return iter(self.elements)
+
+    def __len__(self):
+        return len(self.elements)
+
+    def __getitem__(self, index):
+        return self.elements[index]
+
+    def __setitem__(self, index, element):
+        self.elements[index] = element
+
+    def __delitem__(self, index):
+        del self.elements[index]
+
+    def __add__(self, other):
+        """
+        :param other: A ring
+        :return: The sum of the two rings
         
 
 class Field(AlgebraicStructure[T], Generic[T]):
