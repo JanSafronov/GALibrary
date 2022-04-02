@@ -7,92 +7,94 @@ from typing import Callable, List, TypeVar, Generic
 from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
-from FirstOrder import Identity
-from Algebraic import VectorSpace
+from src.FirstOrder import Identity
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
 
 class Vector:
-    """A class for representing a vector in a vector space.
     """
-    def __init__(self, vector_space: "VectorSpace", coordinates: List[F]):
+    A class for representing a vector.
+    """
+    def __init__(self, vector: List[F]):
         """
-        :param vector_space: A vector space
-        :param coordinates: A list of coordinates
+        :param vector: A list of elements
         """
-        self.vector_space = vector_space
-        self.coordinates = coordinates
-        self.dimension = len(coordinates)
+        self.vector = vector
+        self.dimension = len(vector)
 
     def __str__(self):
-        return "Vector(vector_space = {}, coordinates = {})".format(self.vector_space, self.coordinates)
+        return "Vector({})".format(self.vector)
 
     def __repr__(self):
         return self.__str__()
 
     def __eq__(self, other):
-        return self.vector_space == other.vector_space and self.coordinates == other.coordinates
+        return self.vector == other.vector
 
     def __hash__(self):
         return hash(self.__str__())
 
-    def __contains__(self, coordinate):
-        return coordinate in self.coordinates
+    def __contains__(self, element):
+        return element in self.vector
 
     def __iter__(self):
-        return iter(self.coordinates)
+        return iter(self.vector)
 
     def __len__(self):
-        return len(self.coordinates)
+        return len(self.vector)
 
     def __getitem__(self, index):
-        return self.coordinates[index]
+        return self.vector[index]
 
-    def __setitem__(self, index, coordinate):
-        self.coordinates[index] = coordinate
+    def __setitem__(self, index, element):
+        self.vector[index] = element
 
     def __delitem__(self, index):
-        del self.coordinates[index]
+        del self.vector[index]
 
-    def __add__(self, other: "Vector"):
+    def __add__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
         :return: The sum of the two vectors
         """
-        if self.vector_space != other.vector_space:
-            raise ValueError("The vector spaces are not the same")
-        return Vector(self.vector_space, [self.coordinates[i] + other.coordinates[i] for i in range(self.dimension)])
+        return Vector([a + b for a, b in zip(self.vector, other.vector)])
 
-    def __sub__(self, other: "Vector"):
+    def __sub__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
         :return: The difference of the two vectors
         """
-        if self.vector_space != other.vector_space:
-            raise ValueError("The vector spaces are not the same")
-        return Vector(self.vector_space, [self.coordinates[i] - other.coordinates[i] for i in range(self.dimension)])
+        return Vector([a - b for a, b in zip(self.vector, other.vector)])
 
-    def __mul__(self, other: "Vector"):
+    def __mul__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
-        :return: The dot product of the two vectors
+        :return: The product of the two vectors
         """
-        if self.vector_space != other.vector_space:
-            raise ValueError("The vector spaces are not the same")
-        return sum([self.coordinates[i] * other.coordinates[i] for i in range(self.dimension)])
+        return sum([a * b for a, b in zip(self.vector, other.vector)])
 
-    def __rmul__(self, other: F):
+    def __rmul__(self, scalar: F) -> "Vector":
         """
-        :param other: A scalar
-        :return: The product of the scalar and the vector
+        :param scalar: A scalar
+        :return: The scalar product of the vector and the scalar
         """
-        return Vector(self.vector_space, [other * self.coordinates[i] for i in range(self.dimension)])
+        return Vector([scalar * a for a in self.vector])
+
+
+    def __truediv__(self, other: "Vector") -> "Vector":
+        """
+        :param other: A vector
+        :return: The quotient of the two vectors
+        """
+        return Vector([a / b for a, b in zip(self.vector, other.vector)])
+
+    
 
 def BinOp(a: object, b: object) -> object:
     pass
 
-class AlgebraicStructure(Generic(T), set):
+class AlgebraicStructure(set, Generic[T]):
     """A class for representing an algebraic structure. Algebraic structure is a set of elements
        with binary operations on it and identities that those operations satisfy.
     """
@@ -117,18 +119,14 @@ class AlgebraicStructure(Generic(T), set):
         return {operation(a_, b_) for a_ in a for b_ in b}
 
     def __str__(self):
-        return "AlgebraicStructure(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+        return "for all {},\n {}\n identities = {})".format(self.elements, self.operations, self.identities)
 
-class Group(AlgebraicStructure(T)):
-    """A class for representing a group. A group is a set of elements with binary operations and identities
-    """
-    def __init__(self, elements: List[T], operations: List[Tuple[T, T, T]], identities: List[T]):
-        """
-        :param elements: A list of elements in the group
-        :param operations: A list of tuples of the form (a, b, c) where a, b, c are elements in the group and a*b = c
-        :param identities: A list of elements in the group that are the identities of the operations
-        """
-        super().__init__(elements, operations, identities)
+class Group(AlgebraicStructure[T], Generic[T]):
+    """A class for representing a group. A group is a set of elements with a single binary operation and predefined identities."""
+    
+        
+
+    
 
     def __str__(self):
         return "Group(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
@@ -169,9 +167,9 @@ class Group(AlgebraicStructure(T)):
             raise ValueError("The groups are not the same")
         if self.operations != other.operations:
             raise ValueError("The groups are not the same")
-        if
+        
 
-class Field(AlgebraicStructure(T)):
+class Field(AlgebraicStructure[T], Generic[T]):
     """A class for representing a field. A field is a set of elements with binary operations of addition and multiplication, and identities
     """
     def __init__(self, elements: List[T], operations: List[Tuple[T, T, T]], identities: List[T]):
@@ -244,7 +242,7 @@ class Field(AlgebraicStructure(T)):
         """
         return self.operations == []
 
-class Metric(Generic(T), ABC):
+class Metric(Generic[T], ABC):
     """A class for representing a metric. A metric is a function that takes two arguments and returns a their distance."""
     def __init__(self, x: T, y: T) -> None:
         self.x = x
@@ -280,10 +278,10 @@ class Metric(Generic(T), ABC):
     def __str__(self) -> str:
         return f"d({self.x}, {self.y})"
 
-class MetricSpace(ABC, Generic(T)):
+class MetricSpace(Generic[T], ABC):
     """A class for representing a metric space. A metric space is an ordered pair of a non empty set with a metric on that set"""
-    def __init__(self, elements: Set[T], metric: Metric[T]) -> None:
-        self.elements = set
+    def __init__(self, elements: set[T], metric: Metric[T]) -> None:
+        self.elements = elements
         self.metric = metric
 
     @abstractmethod

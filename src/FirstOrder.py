@@ -11,21 +11,20 @@ from typing import List, TypeVar, Generic
 from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
-from Algebraic import VectorSpace
 
 V = TypeVar("V")
 
-class Identity(Generic(V)):
+class Identity(Generic[V]):
     """
     Identity is a true universally quantified formula.
     """
-    def __init__(self, formula: Lambda(), variables: List[V]):
+    def __init__(self, variables: set[V], formula: Lambda):
         """
+        :param variables: A set of variables
         :param formula: A lambda expression
-        :param variables: A list of variables
         """
-        self.formula = formula
         self.variables = variables
+        self.formula = formula
 
     def __str__(self):
         return "for all {} : {}".format(self.variables, self.formula)

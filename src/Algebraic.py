@@ -1,5 +1,5 @@
-from Elements import Field, Vector
-import Elements
+from src.Elements import Field, Vector
+import src.Elements
 import numpy as np
 import matplotlib, math
 from ast import Set, Tuple
@@ -11,7 +11,7 @@ from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 F = TypeVar("F", bound=Field)
 V = TypeVar("V", bound=Vector)	# Vector
 
-class VectorSpace(Generic(F, V)):
+class VectorSpace(Generic[F, V]):
     """A class for representing a vector space. Vector space is a set of vectors with a field and a basis
     """
     def __init__(self, field: F, basis: List[V]):
@@ -86,16 +86,16 @@ class VectorSpace(Generic(F, V)):
             raise ValueError("The vector spaces are not the same dimension")
         return sum(self.field, [self.basis[i] * other.basis[i] for i in range(self.dimension)])
 
-    def __rmul__(self, other: F):
+    def __rmul__(self, scalar: F):
         """
-        :param other: A scalar
+        :param scalar: A scalar
         :return: The scalar product of the vector space with the scalar
         """
-        if not isinstance(other, Elements.Scalar):
+        if not isinstance(scalar, src.Elements.Scalar):
             raise ValueError("The argument is not a scalar")
-        return VectorSpace(self.field, [self.basis[i] * other for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.basis[i] * scalar for i in range(self.dimension)])
 
-class AffineSpace(Generic(V)):
+class AffineSpace(Generic[V]):
     """A class for representing an affine space. An affine space is a vector space with a point
     """
     def __init__(self, vector_space: VectorSpace, point: V):
