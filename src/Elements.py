@@ -1,6 +1,8 @@
 from argparse import Action
 from ast import Lambda, Set, Tuple
 from dataclasses import Field
+from enum import Enum
+import inspect
 from pyclbr import Function
 import sys
 from typing import Callable, List, TypeVar, Generic
@@ -12,6 +14,8 @@ from src.Inference import BinaryOperator, Commutative, Inverse
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
+
+symbols = {"*", "+", "-", "/", "^"}
 
 class Vector:
     """
@@ -90,7 +94,7 @@ class Vector:
         """
         return Vector([a / b for a, b in zip(self.vector, other.vector)])
 
-class AlgebraicStructure(set, Generic[T]):
+class AlgebraicStructure(Generic[T]):
     """Algebraic structure is a set of elements
        with binary operations on it and identities that those operations satisfy.
     """
@@ -103,8 +107,8 @@ class AlgebraicStructure(set, Generic[T]):
 
         for identity in identities:
             for operation in operations:
-                for element in elements:
-                    if identity(operation(element, element)) != element:
+                for x, y in [(x, y) for x in elements for y in elements]:
+                    if not identity(x, y):
                         raise ValueError("Identity {} does not satisfy operation {}".format(identity, operation))
         
         self.elements = elements
@@ -119,10 +123,11 @@ class AlgebraicStructure(set, Generic[T]):
         :param operation: A binary operation
         :return: The set of elements that satisfy the operation
         """
+        #operation.
         return {operation(a_, b_) for a_ in a for b_ in b}
 
     def __str__(self) -> str:
-        return "for all {},\n {}\n identities = {})".format(self.elements, self.operations, self.identities)
+        return "A = {}\n\nfor all x, y ∈ A,   {}\n  {})".format(self.elements, " ".join(list(map(lambda op, s: str(inspect.signature(op)) + " ↦ " + " x " + s + " y; ", self.operations, symbols))), "\n".join(list(map(lambda id: id.__str__(), self.identities))))
 
 class Monoid(AlgebraicStructure[T], Generic[T]):
     """
@@ -132,14 +137,14 @@ class Monoid(AlgebraicStructure[T], Generic[T]):
     def __init__(self, elements: set[T], operation: Callable[[T, T], T]):
         """
         :param elements: A set of elements
-        :param operation: A binary operations
+        :param operation: A binary operation
         """
         super.__init__(self, elements, {operation}, 
         {lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z)),
-        lambda x, e: operation(x, e) == operation(e, x) == e})
+        lambda x, e: operation(e, x) == operation(x, e) == e})
 
     def __str__(self) -> str:
-        return "M = {}, {}\n {})".format(self.elements, self.operations, self.identities)
+        return "M = {}, (x, y) ↦ x * y\n for all x, y, z ∈ M there exists e ∈ M such that (x * y) * z = x * (y * z)\n and e * x = x * e = x)".format(self.elements, self.operations, self.identities)
 
     def __repr__(self) -> str:
         return "Monoid(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)

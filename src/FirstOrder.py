@@ -5,6 +5,7 @@ Definitions taken from first order logic.
 from argparse import Action
 from ast import Lambda, Set, Tuple
 from dataclasses import Field
+import inspect
 from pyclbr import Function
 import sys
 from typing import Callable, List, TypeVar, Generic
@@ -18,23 +19,34 @@ class Identity(Generic[V], Lambda, ABC):
     """
     Identity is a true universally quantified formula.
     """
-    def __init__(self, variables: set[V], formula: Lambda):
+    def __init__(self, domain: set[V], formula: Callable, vars: int):
         """
-        :param variables: A set of variables
+        :param domain: A set of elements to be quantified
+        :param formula: A lambda expression
+        :param vars: The number of arguments in the formula
+        """
+        self.domain = domain
+        self.formula = formula
+        self.vars = vars
+
+    def __init__(self, domain: set[V], formula: Callable):
+        """
+        :param domain: A set of elements to be quantified
         :param formula: A lambda expression
         """
-        self.variables = variables
+        self.domain = domain
         self.formula = formula
+        self.vars = len(inspect.signature(formula).parameters)
 
     def __call__(self, *args):
         return self.formula(*args)
 
     def is_true(self):
-        for var in self.variables:
+        for var in self.domain:
             self.formula(var)
 
-    def __repr__(self):
-        return "Identity({}, {})".format(self.variables, self.formula)
-
     def __str__(self):
-        return "for all {} : {}".format(self.variables, self.formula)
+        return "for all {} : {}".format(self.domain, self.formula)
+
+    def __repr__(self):
+        return "Identity({}, {})".format(self.domain, self.formula)
