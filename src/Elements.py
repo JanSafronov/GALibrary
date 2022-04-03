@@ -8,7 +8,7 @@ from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from src.FirstOrder import Identity
-from Inference import BinaryOperator, Commutative
+from src.Inference import BinaryOperator, Commutative, Inverse
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
@@ -101,9 +101,9 @@ class AlgebraicStructure(set, Generic[T]):
         :param identities: A set of identities
         """
 
-        for element in elements:
+        for identity in identities:
             for operation in operations:
-                for identity in identities:
+                for element in elements:
                     if identity(operation(element, element)) != element:
                         raise ValueError("Identity {} does not satisfy operation {}".format(identity, operation))
         
@@ -232,17 +232,18 @@ class Group(AlgebraicStructure[T], Generic[T]):
             return Group(self.elements, self.operations[0])
 
 class Ring(AlgebraicStructure[T], Generic[T]):
-    """A ring is a set of elements 
-       with a single binary operation on it and identities that this operation satisfies.
     """
-    def __init__(self, elements: set[T], operations: Set[Callable[[T, T], T]]):
+    A ring is a set of elements 
+    with two binary operations on it and identities that this operations satisfies.
+    """
+    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]]):
         """
         :param elements: A set of elements
         :param operations: A set of binary operations that are associative
         """
         super().__init__(elements, operations, 
         Group(elements, operations[0]).abelian().get_identities() | Monoid(elements, operations[1]).get_identities() |
-        {Commutative.__call__(self.operations[1])})
+        {lambda x, y: Commutative.__call__(self.operations[0](x, y), self.operations[1])})
 
     def __str__(self):
         return "R = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
@@ -278,24 +279,50 @@ class Ring(AlgebraicStructure[T], Generic[T]):
         """
         :param other: A ring
         :return: The sum of the two rings
+        """
+
+    def is_commutative(self) -> bool:
+        """
+        :return: True if the ring is commutative, False otherwise
+        """
+        for x in self.elements:
+            for y in self.elements:
+                if (self.operations[1](x, y) != self.operations[1](y, x)):
+                    return False
+            
+
+    def commutative(self) -> "Ring":
+        """
+        :return: The commutative ring of the ring
+        """
+        if self.is_commutative():
+            new = Ring(self.elements, self.operations)
+            new.identities.add(lambda x, y: self.operations[1](x, y) == self.operations[1](y, x))
+            return new
+        else:
+            return Group(self.elements, self.operations[0])
         
 
-class Field(AlgebraicStructure[T], Generic[T]):
-    """A class for representing a field. A field is a set of elements with binary operations of addition and multiplication, and identities
+class Field(Ring[T], Generic[T]):
     """
-    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], identities: set[Identity]):
+    A field is a set of elements 
+    with two binary operation on it and identities that this operations satisfies.
+    Definitively it is a commutative ring with non zero invertible elements and 0 != 1.
+    """
+    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]]):
         """
-        :param elements: A list of elements in the field
-        :param operations: A list of tuples of the form (a, b, c) where a, b, c are elements in the field and a*b = c
-        :param identities: A list of elements in the field that are the identities of the operations
+        :param elements: A set of elements
+        :param operations: A set of binary operations that are associative and commutative
         """
-        super().__init__(elements, operations, identities)
+        super().__init__(elements, operations)
+        self.identities.add(lambda x, y: self.operations[1](x, y) == self.operations[1](y, x))
+        self.identities.add(Inverse.__call__(self.operations[1]))
 
     def __str__(self):
-        return "Field(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+        return "F = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
 
     def __repr__(self):
-        return self.__str__()
+        return "Field(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
 
     def __eq__(self, other):
         return self.elements == other.elements and self.operations == other.operations and self.identities == other.identities
@@ -330,28 +357,15 @@ class Field(AlgebraicStructure[T], Generic[T]):
             raise ValueError("The fields are not the same")
         if self.operations != other.operations:
             raise ValueError("The fields are not the same")
-        if self.identities != other.identities:
-            raise ValueError("The fields are not the same")
-        return Field(self.elements, self.operations, self.identities)
 
-    def __mul__(self, other):
+    def is_euclidean(self) -> bool:
         """
-        :param other: A field
-        :return: The product of the two fields
+        :return: True if the field is euclidean, False otherwise
         """
-        if self.elements != other.elements:
-            raise ValueError("The fields are not the same")
-        if self.operations != other.operations:
-            raise ValueError("The fields are not the same")
-        if self.identities != other.identities:
-            raise ValueError("The fields are not the same")
-        return Field(self.elements, self.operations, self.identities)
-
-    def algebraically_closed(self):
-        """
-        :return: True if the field is algebraically closed, False otherwise
-        """
-        return self.operations == []
+        for x in self.elements:
+            for y in self.elements:
+                if (self.operations[1](x, y) != self.operations[1](y, x)):
+                    return False
 
 class Metric(Generic[T], ABC):
     """A class for representing a metric. A metric is a function that takes two arguments and returns a their distance."""
