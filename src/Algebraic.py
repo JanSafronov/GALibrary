@@ -1,5 +1,5 @@
-from src.Elements import Field, Vector
-import src.Elements
+from Elements import Field, Vector
+import Elements
 import numpy as np
 import matplotlib, math
 from ast import Set, Tuple

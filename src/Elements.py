@@ -9,8 +9,8 @@ from typing import Callable, List, TypeVar, Generic
 from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
-from src.FirstOrder import Identity
-from src.Inference import BinaryOperator, Commutative, Inverse
+from FirstOrder import Identity
+from Inference import BinaryOperator, Commutative, Inverse
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
@@ -107,9 +107,10 @@ class AlgebraicStructure(Generic[T]):
 
         for identity in identities:
             for operation in operations:
-                for x, y in [(x, y) for x in elements for y in elements]:
+                
+                for (x, y) in [(x, y) for x in elements for y in elements]:
                     if not identity(x, y):
-                        raise ValueError("Identity {} does not satisfy operation {}".format(identity, operation))
+                        raise ValueError("Operation {} does not satisfy Identity {}".format(operation, identity))
         
         self.elements = elements
         self.operations = operations
@@ -129,7 +130,7 @@ class AlgebraicStructure(Generic[T]):
     def __str__(self) -> str:
         return "A = {}\n\nfor all x, y ∈ A,   {}\n  {})".format(self.elements, " ".join(list(map(lambda op, s: str(inspect.signature(op)) + " ↦ " + " x " + s + " y; ", self.operations, symbols))), "\n".join(list(map(lambda id: id.__str__(), self.identities))))
 
-class Monoid(AlgebraicStructure[T], Generic[T]):
+class Monoid(AlgebraicStructure[T]):
     """
     A monoid is a set of elements 
     with a binary operation on it and identities that those operations satisfy.
@@ -139,7 +140,7 @@ class Monoid(AlgebraicStructure[T], Generic[T]):
         :param elements: A set of elements
         :param operation: A binary operation
         """
-        super.__init__(self, elements, {operation}, 
+        super().__init__(elements, {operation}, 
         {lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z)),
         lambda x, e: operation(e, x) == operation(x, e) == e})
 

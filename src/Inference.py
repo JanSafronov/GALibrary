@@ -1,5 +1,5 @@
 """
-Definitions taken from Rules of inference in formal logic.
+Definitions taken from rules of inference in formal logic.
 Particularly from rules of replacement.
 """
 
