@@ -75,7 +75,7 @@ class Vector:
     def __mul__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
-        :return: The product of the two vectors
+        :return: The dot product of the two vectors
         """
         return sum([a * b for a, b in zip(self.vector, other.vector)])
 
@@ -95,8 +95,9 @@ class Vector:
         return Vector([a / b for a, b in zip(self.vector, other.vector)])
 
 class AlgebraicStructure(Generic[T]):
-    """Algebraic structure is a set of elements
-       with binary operations on it and identities that those operations satisfy.
+    """
+    Algebraic structure is a set of elements
+    with binary operations on it and identities that those operations satisfy.
     """
     def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], identities: set[Identity]):
         """
