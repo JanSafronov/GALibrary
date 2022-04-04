@@ -21,7 +21,7 @@ class Vector:
     """
     A class for representing a vector.
     """
-    def __init__(self, vector: List[F]):
+    def __init__(self, vector: List[T]):
         """
         :param vector: A list of elements
         """
@@ -116,6 +116,14 @@ class AlgebraicStructure(Generic[T]):
         self.elements = elements
         self.operations = operations
         self.identities = identities
+
+    def operate(self, a: T, b: T) -> T:
+        """
+        :param a: An element
+        :param b: An element
+        :return: The result of applying the binary operation on the two elements
+        """
+        return self.operations[0](a, b)
 
     @staticmethod
     def operate(a: set[T], b: set[T], operation: Callable[[T, T], T]) -> set[T]:
@@ -373,6 +381,67 @@ class Field(Ring[T], Generic[T]):
             for y in self.elements:
                 if (self.operations[1](x, y) != self.operations[1](y, x)):
                     return False
+
+R = TypeVar("R")
+G = TypeVar("G")
+
+class Module(Generic[R, G]):
+    """
+    A Module (R-module) is a ring with an abelian group
+    with two binary operations on them and identities that this operations satisfies.
+    """
+    def __init__(self, ring: Ring[R], group: Group[G], operation: Callable[[R, G], G]):
+        """
+        :param elements: A set of elements
+        :param operations: A set of binary operations that are associative
+        """
+        self.ring = ring
+        self.group = group
+        self.operation = operation
+        self.identities = {
+            lambda r, x, y: self.operation(r, group.operate(x, y)) == group.operate(self.operation(r, x), self.operation(r, y)),
+            lambda r, s, x: self.operation(group.operate(r, s), x) == group.operate(self.operation(r, x), self.operation(s, x)),
+            lambda r, s, x: self.operation(ring.operate(r, s), x) == self.operation(r, self.operation(s, x)),
+            lambda x: self.operation(1, x) == x}
+    def __str__(self):
+        return "M = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
+
+    def __repr__(self):
+        return "R_Module(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
+
+    def __eq__(self, other):
+        return self.elements == other.elements and self.operations == other.operations and self.identities == other.identities
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, element):
+        return element in self.elements
+
+    def __iter__(self):
+        return iter(self.elements)
+
+    def __len__(self):
+        return len(self.elements)
+
+    def __getitem__(self, index):
+        return self.elements[index]
+
+    def __setitem__(self, index, element):
+        self.elements[index] = element
+
+    def __delitem__(self, index):
+        del self.elements[index]
+
+    def __add__(self, other):
+        """
+        :param other: A module
+        :return: The sum of the two modules
+        """
+        if self.elements != other.elements:
+            raise ValueError("The modules are not the same")
+        if self.operations != other.operations:
+            raise ValueError("The modules are not the same")
 
 class Metric(Generic[T], ABC):
     """A class for representing a metric. A metric is a function that takes two arguments and returns a their distance."""
