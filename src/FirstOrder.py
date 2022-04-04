@@ -46,7 +46,8 @@ class Identity(Generic[V], Lambda, ABC):
             self.formula(var)
 
     def __str__(self):
-        return "for all {} : {}".format(self.domain, self.formula)
+        var_format = {0: "x", 1: "y", 2: "z", 3: "w", 4: "t", 5: "u", 6: "v"}
+        return "for all {} ∈ {} : {}".format(", ".join([val for key, val in var_format]), self.domain, self.formula)
 
     def __repr__(self):
         return "Identity({}, {})".format(self.domain, self.formula)

@@ -12,7 +12,7 @@ F = TypeVar("F", bound=Field)
 V = TypeVar("V", bound=Vector)	# Vector
 
 class VectorSpace(Generic[F, V]):
-    """A class for representing a vector space. Vector space is a set of vectors with a field and a basis
+    """Vector space is a set of vectors with a field and a basis
     """
     def __init__(self, field: F, basis: List[V]):
         """
@@ -96,7 +96,8 @@ class VectorSpace(Generic[F, V]):
         return VectorSpace(self.field, [self.basis[i] * scalar for i in range(self.dimension)])
 
 class AffineSpace(Generic[V]):
-    """A class for representing an affine space. An affine space is a vector space with a point
+    """
+    An affine space is a vector space with a point
     """
     def __init__(self, vector_space: VectorSpace, point: V):
         """
@@ -153,3 +154,57 @@ class AffineSpace(Generic[V]):
         if self.vector_space != other.vector_space:
             raise ValueError("The affine spaces are not in the same vector space")
         return AffineSpace(self.vector_space, self.point - other.point)
+
+class AffineVariety(Generic[F, V]):
+    """ 
+    An affine variety is a set of solutions of a field of a system of polynomial equations with coefficients in the field
+    """
+    def __init__(self, field: F, equations: List[Equation[F, V]]):
+        """
+        :param field: A field
+        :param equations: A list of equations
+        """
+        self.field = field
+        self.equations = equations
+        self.dimension = len(equations)
+
+    def __str__(self):
+        return "AffineVariety(field = {}, equations = {})".format(self.field, self.equations)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return self.field == other.field and self.equations == other.equations
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, affine_space: AffineSpace):
+        return affine_space in self.equations
+
+    def __iter__(self):
+        return iter(self.equations)
+
+    def __len__(self):
+        return len(self.equations)
+
+    def __getitem__(self, index):
+        return self.equations[index]
+
+    def __setitem__(self, index, affine_space):
+        self.equations[index] = affine_space
+
+    def __delitem__(self, index):
+        del self.equations[index]
+
+    def __add__(self, other: "AffineVariety") -> "AffineVariety":
+        """
+        :param other: An affine variety
+        :return: The sum of the two affine varieties
+        """
+        if self.field != other.field:
+            raise ValueError("The affine varieties are not in the same field")
+        if self.dimension != other.dimension:
+            raise ValueError("The affine varieties are not the same dimension")
+        return AffineVariety(self.field, [self.equations[i] + other.equations[i] for i in range(self.dimension)])

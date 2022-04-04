@@ -132,7 +132,7 @@ class AlgebraicStructure(Generic[T]):
 
 class Monoid(AlgebraicStructure[T]):
     """
-    A monoid is a set of elements 
+    A monoid is a set of elements
     with a binary operation on it and identities that those operations satisfy.
     """
     def __init__(self, elements: set[T], operation: Callable[[T, T], T]):
@@ -145,7 +145,7 @@ class Monoid(AlgebraicStructure[T]):
         lambda x, e: operation(e, x) == operation(x, e) == e})
 
     def __str__(self) -> str:
-        return "M = {}, (x, y) ↦ x * y\n for all x, y, z ∈ M there exists e ∈ M such that (x * y) * z = x * (y * z)\n and e * x = x * e = x)".format(self.elements, self.operations, self.identities)
+        return "M = {}, (x, y) ↦ x * y\n there exists e ∈ M for all x, y, z ∈ M such that (x * y) * z = x * (y * z)\n and e * x = x * e = x".format(self.elements)
 
     def __repr__(self) -> str:
         return "Monoid(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
@@ -171,7 +171,7 @@ class Group(AlgebraicStructure[T], Generic[T]):
         lambda x, e, y: operation(x, e) == operation(e, x) == x and operation(x, y) == operation(y, x) == e})
 
     def __str__(self) -> str:
-        return "G = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
+        return "G = {},  (x, y) ↦ x * y\n there exists e ∈ M for all x, y, z ∈ M such that (x * y) * z = x * (y * z)\n and e * x = x * e = x \n and x * y = y * x = e))".format(self.elements)
 
     def __repr__(self) -> str:
         return "Group(elements = {}, operations = {}, identities = {})".format(self.elements, self.operations, self.identities)
