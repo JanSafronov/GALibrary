@@ -208,3 +208,117 @@ class AffineVariety(Generic[F, V]):
         if self.dimension != other.dimension:
             raise ValueError("The affine varieties are not the same dimension")
         return AffineVariety(self.field, [self.equations[i] + other.equations[i] for i in range(self.dimension)])
+
+class RationalFunction(Generic[F, V]):
+    """
+    A rational function is a polynomial with coefficients in a field
+    """
+    def __init__(self, field: F, polynomial: Polynomial[F, V]):
+        """
+        :param field: A field
+        :param polynomial: A polynomial
+        """
+        self.field = field
+        self.polynomial = polynomial
+
+    def __str__(self):
+        return "RationalFunction(field = {}, polynomial = {})".format(self.field, self.polynomial)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return self.field == other.field and self.polynomial == other.polynomial
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, affine_variety: AffineVariety):
+        return affine_variety in self.polynomial
+
+    def __iter__(self):
+        return iter(self.polynomial)
+
+    def __len__(self):
+        return len(self.polynomial)
+
+    def __getitem__(self, index):
+        return self.polynomial[index]
+
+    def __setitem__(self, index, affine_variety):
+        self.polynomial[index] = affine_variety
+
+    def __delitem__(self, index):
+        del self.polynomial[index]
+
+    def __add__(self, other: "RationalFunction") -> "RationalFunction":
+        """
+        :param other: A rational function
+        :return: The sum of the two rational functions
+        """
+        if self.field != other.field:
+            raise ValueError("The rational functions are not in the same field")
+        return RationalFunction(self.field, self.polynomial + other.polynomial)
+
+    def __sub__(self, other: "RationalFunction") -> "RationalFunction":
+        """
+        :param other: A rational function 
+        :return: The difference of the two rational functions
+        """
+        if self.field != other.field:
+            raise ValueError("The rational functions are not in the same field")
+        return RationalFunction(self.field, self.polynomial - other.polynomial)
+
+class Ideal(Generic[F, V]):
+    """
+    An ideal is a set of solutions of a field of a system of polynomial equations with coefficients in the field
+    """
+    def __init__(self, field: F, equations: List[Equation[F, V]]):
+        """
+        :param field: A field
+        :param equations: A list of equations
+        """
+        self.field = field
+        self.equations = equations
+        self.dimension = len(equations)
+
+    def __str__(self):
+        return "Ideal(field = {}, equations = {})".format(self.field, self.equations)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return self.field == other.field and self.equations == other.equations
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, rational_function: RationalFunction):
+        return rational_function in self.equations
+
+    def __iter__(self):
+        return iter(self.equations)
+
+    def __len__(self):
+        return len(self.equations)
+
+    def __getitem__(self, index):
+        return self.equations[index]
+
+    def __setitem__(self, index, rational_function):
+        self.equations[index] = rational_function
+
+    def __delitem__(self, index):
+        del self.equations[index]
+
+    def __add__(self, other: "Ideal") -> "Ideal":
+        """
+        :param other: An ideal
+        :return: The sum of the two ideals
+        """
+        if self.field != other.field:
+            raise ValueError("The ideals are not in the same field")
+        if self.dimension != other.dimension:
+            raise ValueError("The ideals are not the same dimension")
+        return Ideal(self.field, [self.equations[i] + other.equations[i] for i in range(self.dimension)])
