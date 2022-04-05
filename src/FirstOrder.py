@@ -41,6 +41,9 @@ class Identity(Generic[V], Lambda, ABC):
     def __call__(self, *args):
         return self.formula(*args)
 
+    def __or__(self, other):
+        return Identity(self.domain | other.domain, lambda x: self.formula(x) or other.formula(x))
+
     def is_true(self):
         for var in self.domain:
             self.formula(var)

@@ -9,6 +9,8 @@ from typing import Callable, List, TypeVar, Generic
 from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+
+from soupsieve import Iterable
 from FirstOrder import Identity
 from Inference import BinaryOperator, Commutative, Inverse
 
@@ -94,12 +96,12 @@ class Vector:
         """
         return Vector([a / b for a, b in zip(self.vector, other.vector)])
 
-class AlgebraicStructure(Generic[T]):
+class AlgebraicStructure(set[T], Generic[T]):
     """
     Algebraic structure is a set of elements
     with binary operations on it and identities that those operations satisfy.
     """
-    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], identities: set[Identity]):
+    def __init__(self, elements: set[T], operations: set[BinaryOperator], identities: set[Identity]):
         """
         :param elements: A set of elements
         :param operations: A set of binary operations
@@ -108,7 +110,6 @@ class AlgebraicStructure(Generic[T]):
 
         for identity in identities:
             for operation in operations:
-                
                 for (x, y) in [(x, y) for x in elements for y in elements]:
                     if not identity(x, y):
                         raise ValueError("Operation {} does not satisfy Identity {}".format(operation, identity))
@@ -136,6 +137,16 @@ class AlgebraicStructure(Generic[T]):
         #operation.
         return {operation(a_, b_) for a_ in a for b_ in b}
 
+    def __or__(self, other: "AlgebraicStructure") -> "AlgebraicStructure":
+        """
+        :param other: An algebraic structure
+        :return: The union of the two algebraic structures
+        """
+        return AlgebraicStructure(self.elements | other.elements, self.operations | other.operations, self.identities | other.identities)
+
+    def union(self, *s: Iterable[_S]) -> set[_T | _S]:
+        return super().union(*s)
+    
     def __str__(self) -> str:
         return "A = {}\n\nfor all x, y ∈ A,   {}\n  {})".format(self.elements, " ".join(list(map(lambda op, s: str(inspect.signature(op)) + " ↦ " + " x " + s + " y; ", self.operations, symbols))), "\n".join(list(map(lambda id: id.__str__(), self.identities))))
 
@@ -387,7 +398,7 @@ G = TypeVar("G")
 
 class Module(Generic[R, G]):
     """
-    A Module (R-module) is a ring with an abelian group
+    A Module (R-module) is a ring with an abelian group under addition
     with two binary operations on them and identities that this operations satisfies.
     """
     def __init__(self, ring: Ring[R], group: Group[G], operation: Callable[[R, G], G]):
@@ -529,3 +540,4 @@ class Interval:
 
     def __str__(self) -> str:
         return "[" if self.is_closed else "(" + self.a + ", " + self.b + ")" if self.is_open else "]"
+

@@ -14,11 +14,15 @@ class BinaryOperator(Generic[T], Lambda, ABC):
     """
     A binary operator on a set of elements S.
     """
-    def __init__(self, domain: set(T), op: Callable[[T, T], T]):
+    def __init__(self, domain: set[T], op: Callable[[T, T], T], is_internal: bool = False):
         """
         :param domain: A set of elements
         :param op: A binary operator
         """
+        if is_internal:
+            for x, y in [(x, y) for x in domain for y in domain]:
+                if self.op(x, y) not in domain:
+                    raise ValueError("{} is not in the domain of {}".format(self.op(x, y), self))
         self.domain = domain
         self.op = op
 
@@ -47,7 +51,7 @@ class Associative(BinaryOperator[T], Generic[T], Lambda, ABC):
     """
     An associative operator satisfying the associative identity on a set of elements S.
     """
-    def __init__(self, domain: set(T), op: Callable[[T, T], T]):
+    def __init__(self, domain: set[T], op: Callable[[T, T], T]):
         """
         :param domain: Set of elements
         :param op: An associative operator

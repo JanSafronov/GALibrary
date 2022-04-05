@@ -1,4 +1,5 @@
-from Elements import Field, Vector
+from ctypes import Union
+from Elements import AlgebraicStructure, Field, Module, Vector, Group
 import Elements
 import numpy as np
 import matplotlib, math
@@ -9,9 +10,91 @@ from matplotlib import docstring
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 F = TypeVar("F", bound=Field)
-#V = TypeVar("V", bound=Vector)	# Vector
+V = TypeVar("V", bound=Vector)	# Vector
 
-class VectorSpace(Generic[F]):
+class VectorSpace(Set, Generic[F, V]):
+    """
+    Vector space is an abelian group under addition and an F-module of vectors with a field F
+    """
+    def __init__(self, field: F, vectors: Union[Module[F, V], Group[V]]):
+        """
+        :param field: A field
+        :param vectors: An abelian group or a module of vectors
+        """
+        self.field = field
+        self.vectors = vectors
+
+    def __str__(self):
+        return "V = {} vector space over field F = {}".format(self.vectors, self.field)
+
+    def __repr__(self):
+        return "VectorSpace(field = {}, vectors = {})".format(self.field, self.vectors)
+
+    def __eq__(self, other):
+        return self.field == other.field and self.basis == other.basis
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, vector):
+        return vector in self.vectors
+
+    def __iter__(self):
+        return iter(self.basis)
+
+    def __len__(self):
+        return len(self.basis)
+
+    def __getitem__(self, index):
+        return self.basis[index]
+
+    def __setitem__(self, index, vector):
+        self.basis[index] = vector
+
+    def __delitem__(self, index):
+        del self.basis[index]
+
+    def __add__(self, other: "VectorSpace") -> "VectorSpace":
+        """
+        :param other: A vector space
+        :return: The sum of the two vector spaces
+        """
+        if self.field != other.field:
+            raise ValueError("The vector spaces are not in the same field")
+        if self.dimension != other.dimension:
+            raise ValueError("The vector spaces are not the same dimension")
+        return VectorSpace(self.field, [self.basis[i] + other.basis[i] for i in range(self.dimension)])
+
+    def __sub__(self, other: "VectorSpace") -> "VectorSpace":
+        """
+        :param other: A vector space
+        :return: The difference of the two vector spaces
+        """
+        if self.field != other.field:
+            raise ValueError("The vector spaces are not in the same field")
+        if self.dimension != other.dimension:
+            raise ValueError("The vector spaces are not the same dimension")
+        return VectorSpace(self.field, [self.basis[i] - other.basis[i] for i in range(self.dimension)])
+
+    def __mul__(self, other: "VectorSpace") -> F:
+        """
+        :param other: A vector space
+        :return: The tensor product of the two vector spaces
+        """
+        if self.field != other.field:
+            raise ValueError("The vector spaces are not in the same field")
+        if self.dimension != other.dimension:
+            raise ValueError("The vector spaces are not the same dimension")
+        return sum(self.field, [self.basis[i] * other.basis[i] for i in range(self.dimension)])
+
+    def __rmul__(self, scalar: F):
+        """
+        :param scalar: A scalar
+        :return: The scalar product of the vector space with the scalar
+        """
+        if not isinstance(scalar, Elements.Scalar):
+            raise ValueError("The argument is not a scalar")
+        return VectorSpace(self.field, [self.basis[i] * scalar for i in range(self.dimension)])
 
 class AffineSpace():
     """
