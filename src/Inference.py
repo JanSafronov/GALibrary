@@ -4,7 +4,7 @@ Particularly from rules of replacement.
 """
 
 from abc import ABC
-from ast import Lambda
+from ast import Call, Lambda
 from typing import Callable, Generic, TypeVar
 
 T = TypeVar("T")
@@ -18,12 +18,29 @@ class BinaryOperator(Generic[T], Lambda, ABC):
         """
         :param domain: A set of elements
         :param op: A binary operator
+        :param is_internal: Whether the domain is internal to the operator
         """
         if is_internal:
             for x, y in [(x, y) for x in domain for y in domain]:
                 if self.op(x, y) not in domain:
                     raise ValueError("{} is not in the domain of {}".format(self.op(x, y), self))
         self.domain = domain
+        self.op = op
+
+    """
+    A binary operator on a set of elements S.
+    """
+    def __init__(self, map: Callable[[int], T], domain_length: int, op: Callable[[T, T], T], is_internal: bool = False):
+        """
+        :param map: A function that maps integers to elements of S
+        :param op: A binary operator
+        :param is_internal: Whether the domain is internal to the operator
+        """
+        if is_internal:
+            #if not all(map(x) in self.domain for x in range(len(self.domain))):
+            if op(map(domain_length), map(domain_length)) not in self.domain:
+                raise ValueError("{} is not in the domain of {}".format(op(map(domain_length), map(domain_length)), self))
+        self.domain = set(map(x) for x in range(domain_length))
         self.op = op
 
     def __call__(self, a: T, b: T) -> T:
@@ -94,7 +111,7 @@ class Commutative(BinaryOperator[T], Generic[T], Lambda, ABC):
     """
     A commutative operator satisfying the commutative identity on a set of elements S.
     """
-    def __init__(self, domain: set(T), op: Callable[[T, T], T]):
+    def __init__(self, domain: set[T], op: Callable[[T, T], T]):
         """
         :param domain: Set of elements
         :param op: A commutative operator
@@ -170,7 +187,7 @@ class Distributive(BinaryOperator[T], Generic[T], Lambda, ABC):
     """
     A distributive operator satisfying the distributive identity on a set of elements S.
     """
-    def __init__(self, domain: set(T), op0: Callable[[T, T], T], op1: Callable[[T, T], T]):
+    def __init__(self, domain: set[T], op0: Callable[[T, T], T], op1: Callable[[T, T], T]):
         """
         :param domain: Set of elements
         :param op0: A distributive operator

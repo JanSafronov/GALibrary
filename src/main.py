@@ -1,5 +1,5 @@
-from Elements import AlgebraicStructure, Monoid
-from FirstOrder import Identity
+from elements import AlgebraicStructure, Monoid
+from firstorder import Identity
 
 A = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 OP = {lambda x, y: x + y, lambda x, y: x * y, lambda x, y: x - y, lambda x, y: x / y}

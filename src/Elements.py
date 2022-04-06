@@ -5,13 +5,13 @@ from enum import Enum
 import inspect
 from pyclbr import Function
 import sys
-from typing import Callable, List, TypeVar, Generic
+from typing import Callable, List, TypeVar, Generic, Union
 from matplotlib import docstring
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 from soupsieve import Iterable
-from FirstOrder import Identity
+from firstorder import Identity
 from Inference import BinaryOperator, Commutative, Inverse
 
 F = TypeVar("F", bound=Field)
@@ -19,7 +19,77 @@ T = TypeVar("T")
 
 symbols = {"*", "+", "-", "/", "^"}
 
-class Vector:
+class Scalar:
+    """
+    Scalar is a class for representing scalar values.
+    """
+    def __init__(self, value: float):
+        """
+        :param value: The value of the scalar
+        """
+        self.value = value
+
+    def __add__(self, other):
+        return Scalar(self.value + other.value)
+
+    def __sub__(self, other):
+        return Scalar(self.value - other.value)
+
+    def __mul__(self, other):
+        return Scalar(self.value * other.value)
+
+    def __truediv__(self, other):
+        return Scalar(self.value / other.value)
+
+    def __pow__(self, other):
+        return Scalar(self.value ** other.value)
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return "Scalar({})".format(self.value)
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __gt__(self, other):
+        return self.value > other.value
+
+    def __le__(self, other):
+        return self.value <= other.value
+
+    def __ge__(self, other):
+        return self.value >= other.value
+
+    def __ne__(self, other):
+        return self.value != other.value
+
+    def __neg__(self):
+        return Scalar(-self.value)
+
+    def __abs__(self):
+        return Scalar(abs(self.value))
+
+    def __pos__(self):
+        return Scalar(self.value)
+
+    def __invert__(self):
+        return Scalar(1 / self.value)
+
+    def __round__(self):
+        return Scalar(round(self.value))
+
+    def __floor__(self):
+        return Scalar(math.floor(self.value))
+
+    def __ceil__(self):
+        return Scalar(math.ceil(self.value))
+
+class Vector(List):
     """
     A class for representing a vector.
     """
@@ -27,8 +97,30 @@ class Vector:
         """
         :param vector: A list of elements
         """
+        super().__init__(vector)
         self.vector = vector
         self.dimension = len(vector)
+
+    def __init__(self, *args: T):
+        """
+        :param vector: A list of elements
+        """
+        super().__init__(*args)
+        self.vector = [*args]
+        self.dimension = len(self.vector)
+
+    @staticmethod
+    def unit(dimension: int, direction: int, as_list: bool = False) -> Union["Vector", List[float]]:
+        """
+        :param dimension: The dimension of the vector
+        :return: A unit vector of the given dimension in a specific direction
+        """
+        unit = [0] * dimension
+        unit[direction] = 1
+        if as_list:
+            return unit
+        return Vector(unit)
+        
 
     def __str__(self):
         return "Vector({})".format(self.vector)
@@ -144,8 +236,8 @@ class AlgebraicStructure(set[T], Generic[T]):
         """
         return AlgebraicStructure(self.elements | other.elements, self.operations | other.operations, self.identities | other.identities)
 
-    def union(self, *s: Iterable[_S]) -> set[_T | _S]:
-        return super().union(*s)
+    def __getitem__(self, index: int) -> T:
+        return self.elements[index]
     
     def __str__(self) -> str:
         return "A = {}\n\nfor all x, y ∈ A,   {}\n  {})".format(self.elements, " ".join(list(map(lambda op, s: str(inspect.signature(op)) + " ↦ " + " x " + s + " y; ", self.operations, symbols))), "\n".join(list(map(lambda id: id.__str__(), self.identities))))

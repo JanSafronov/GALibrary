@@ -1,6 +1,7 @@
-from ctypes import Union
-from Elements import AlgebraicStructure, Field, Module, Vector, Group
-import Elements
+from audioop import cross
+from typing import Callable, Union
+from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
+import elements
 import numpy as np
 import matplotlib, math
 from ast import Set, Tuple
@@ -11,6 +12,7 @@ from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 F = TypeVar("F", bound=Field)
 V = TypeVar("V", bound=Vector)	# Vector
+T = TypeVar("T")
 
 class VectorSpace(Set, Generic[F, V]):
     """
@@ -21,8 +23,18 @@ class VectorSpace(Set, Generic[F, V]):
         :param field: A field
         :param vectors: An abelian group or a module of vectors
         """
+
         self.field = field
         self.vectors = vectors
+
+    def __init__(self, field: F, basis: list[V]):
+        """
+        :param field: A field
+        :param basis: A list of vectors
+        """
+        self.field = field
+        self.basis = basis
+        self.vectors = set((lambda Λ: map(lambda v, λ: λ * v, basis, Λ))({x, y, z}) for x in field for y in field for z in field)
 
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
@@ -31,7 +43,7 @@ class VectorSpace(Set, Generic[F, V]):
         return "VectorSpace(field = {}, vectors = {})".format(self.field, self.vectors)
 
     def __eq__(self, other):
-        return self.field == other.field and self.basis == other.basis
+        return self.field == other.field and self.vectors == other.vectors
 
     def __hash__(self):
         return hash(self.__str__())
@@ -40,19 +52,19 @@ class VectorSpace(Set, Generic[F, V]):
         return vector in self.vectors
 
     def __iter__(self):
-        return iter(self.basis)
+        return iter(self.vectors)
 
     def __len__(self):
-        return len(self.basis)
+        return len(self.vectors)
 
     def __getitem__(self, index):
-        return self.basis[index]
+        return self.vectors[index]
 
     def __setitem__(self, index, vector):
-        self.basis[index] = vector
+        self.vectors[index] = vector
 
     def __delitem__(self, index):
-        del self.basis[index]
+        del self.vectors[index]
 
     def __add__(self, other: "VectorSpace") -> "VectorSpace":
         """
@@ -92,9 +104,20 @@ class VectorSpace(Set, Generic[F, V]):
         :param scalar: A scalar
         :return: The scalar product of the vector space with the scalar
         """
-        if not isinstance(scalar, Elements.Scalar):
+        if not isinstance(scalar, Scalar):
             raise ValueError("The argument is not a scalar")
         return VectorSpace(self.field, [self.basis[i] * scalar for i in range(self.dimension)])
+
+    def ParametricEquation(self) -> Callable[[tuple[V, ...]], V]:
+        """
+        :return: A parametric equation for the vector space
+        """
+        print(self.basis)
+        mcrossp = np.cross(self.basis[0], self.basis[1])
+        print(mcrossp)
+        dim = len(mcrossp)
+        print(sum(mcrossp[:dim - 1] / mcrossp[dim - 1] * [2, 3]))
+        return lambda Λ: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * Λ[i] for i in range(dim - 1))
 
 class AffineSpace():
     """
@@ -109,10 +132,10 @@ class AffineSpace():
         self.point = point
 
     def __str__(self):
-        return "AffineSpace(vector_space = {}, point = {})".format(self.vector_space, self.point)
+        return "V = {} affine space over field F = {}".format(self.vectors, self.field)
 
     def __repr__(self):
-        return self.__str__()
+        return "AffineSpace(vector_space = {}, point = {})".format(self.vector_space, self.point)
 
     def __eq__(self, other):
         return self.vector_space == other.vector_space and self.point == other.point
@@ -160,14 +183,13 @@ class AffineVariety(Generic[F, V]):
     """ 
     An affine variety is a set of solutions of a field of a system of polynomial equations with coefficients in the field
     """
-    def __init__(self, field: F, equations: List[Equation[F, V]]):
+    def __init__(self, field: F, equations: List[Callable[[tuple[V, ...]], F]]):
         """
         :param field: A field
         :param equations: A list of equations
         """
         self.field = field
         self.equations = equations
-        self.dimension = len(equations)
 
     def __str__(self):
         return "AffineVariety(field = {}, equations = {})".format(self.field, self.equations)
@@ -214,7 +236,7 @@ class RationalFunction(Generic[F, V]):
     """
     A rational function is a polynomial with coefficients in a field
     """
-    def __init__(self, field: F, polynomial: Polynomial[F, V]):
+    def __init__(self, field: F, polynomial: Callable[[tuple[V, ...]], F]):
         """
         :param field: A field
         :param polynomial: A polynomial
@@ -274,7 +296,7 @@ class Ideal(Generic[F, V]):
     """
     An ideal is a set of solutions of a field of a system of polynomial equations with coefficients in the field
     """
-    def __init__(self, field: F, equations: List[Equation[F, V]]):
+    def __init__(self, field: F, equations: List[Callable[[tuple[V, ...]], F]]):
         """
         :param field: A field
         :param equations: A list of equations
