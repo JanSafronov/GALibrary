@@ -12,7 +12,7 @@ from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 from soupsieve import Iterable
 from firstorder import Identity
-from Inference import BinaryOperator, Commutative, Inverse
+from inference import BinaryOperator, Commutative, Inverse
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")

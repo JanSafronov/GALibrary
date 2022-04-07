@@ -1,6 +1,6 @@
 from audioop import cross
 from typing import Callable, Union
-from aglibrary.src.Inference import BinaryOperator, Distributive
+from inference import BinaryOperator, Distributive
 from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
 import elements
 import numpy as np
@@ -401,7 +401,6 @@ class Ideal(Generic[F, V]):
     def __init__(self, field: F, affine: AffineVariety[F, V]):
         """
         :param field: A field
-        :param equations: A list of equations
         :param affine: An affine space
         """
         if BinaryOperator(field, lambda x, y: x * y, False)(field, affine):
@@ -456,13 +455,11 @@ class Ideal(Generic[F, V]):
         :return: True if the ideal is a monomial ideal
         """
         return all(self.equations[i].polynomial.is_monomial() for i in range(self.dimension))
-<<<<<<< HEAD:src/Algebraic.py
     
     @staticmethod
     def generate(self, equations: Callable[[T, T], T]) -> set[Callable[[tuple[V, ...]], F]]:
         """
         :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space
         """
-        return Ideal(self.field, )
-=======
->>>>>>> 806302473925a3c7e101a8fa12655a09d321408f:src/algebraic.py
+        return Ideal(self.field, AffineVariety(self.field, equations))
+
