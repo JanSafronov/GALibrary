@@ -1,5 +1,6 @@
 from audioop import cross
 from typing import Callable, Union
+from aglibrary.src.Inference import BinaryOperator, Distributive
 from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
 import elements
 import numpy as np
@@ -211,8 +212,11 @@ class AffineVariety(Generic[F, V]):
     def __hash__(self):
         return hash(self.__str__())
 
-    def __contains__(self, affine_space: AffineSpace):
+    def __contains__(self, affine_space: AffineSpace) -> bool:
         return affine_space in self.equations
+
+    def __contains__(self, element: F) -> bool:
+        return map(self.equations[i](element) == 0 for i in range(len(self.equations)))
 
     def __iter__(self):
         return iter(self.equations)
@@ -392,22 +396,25 @@ class Monomial(Generic[F, V]):
 
 class Ideal(Generic[F, V]):
     """
-    An ideal is a set of solutions of a field of a system of polynomial equations with coefficients in the field
+    An ideal of an affine variety is a set of polynomials in a polynomial ring over a field that vanish on the variety
     """
-    def __init__(self, field: F, equations: List[Callable[[tuple[V, ...]], F]]):
+    def __init__(self, field: F, affine: AffineVariety[F, V]):
         """
         :param field: A field
         :param equations: A list of equations
+        :param affine: An affine space
         """
+        if BinaryOperator(field, lambda x, y: x * y, False)(field, affine):
+            raise ValueError("The ideal doesn't generate the affine space")
         self.field = field
-        self.equations = equations
-        self.dimension = len(equations)
+        self.affine = affine
+        self.dimension = len(affine)
 
     def __str__(self):
-        return "I = ⟨⟩(field = {}, equations = {})".format(self.field, self.equations)
+        return "I = {f ∈ k[x_1, ..., x_n] | f(x) = 0 ∀x ∈ V}" + "\n k = {}, V = {}".format(self.field, self.equations)
 
     def __repr__(self):
-        return "Ideal(field = {}, equations = {})".format(self.field, self.equations)
+        return "Ideal(field = {}, affine = {})".format(self.field, self.equations)
 
     def __eq__(self, other):
         return self.field == other.field and self.equations == other.equations
@@ -415,8 +422,8 @@ class Ideal(Generic[F, V]):
     def __hash__(self):
         return hash(self.__str__())
 
-    def __contains__(self, rational_function: RationalFunction):
-        return rational_function in self.equations
+    def __contains__(self, polynomial: Callable[[V], F]) -> bool:
+        return map(polynomial(v) == 0 for v in self.affine)
 
     def __iter__(self):
         return iter(self.equations)
@@ -449,3 +456,10 @@ class Ideal(Generic[F, V]):
         :return: True if the ideal is a monomial ideal
         """
         return all(self.equations[i].polynomial.is_monomial() for i in range(self.dimension))
+    
+    @staticmethod
+    def generate(self, equations: Callable[[T, T], T]) -> set[Callable[[tuple[V, ...]], F]]:
+        """
+        :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space
+        """
+        return Ideal(self.field, )

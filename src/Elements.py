@@ -506,6 +506,7 @@ class Module(Generic[R, G]):
             lambda r, s, x: self.operation(group.operate(r, s), x) == group.operate(self.operation(r, x), self.operation(s, x)),
             lambda r, s, x: self.operation(ring.operate(r, s), x) == self.operation(r, self.operation(s, x)),
             lambda x: self.operation(1, x) == x}
+    
     def __str__(self):
         return "M = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
 

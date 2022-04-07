@@ -8,6 +8,7 @@ from ast import Call, Lambda
 from typing import Callable, Generic, TypeVar
 
 T = TypeVar("T")
+S = TypeVar("S")
 
 # Remove later if unnecessary class
 class BinaryOperator(Generic[T], Lambda, ABC):
@@ -26,7 +27,7 @@ class BinaryOperator(Generic[T], Lambda, ABC):
                     raise ValueError("{} is not in the domain of {}".format(self.op(x, y), self))
         self.domain = domain
         self.op = op
-
+        
     """
     A binary operator on a set of elements S.
     """
@@ -43,8 +44,18 @@ class BinaryOperator(Generic[T], Lambda, ABC):
         self.domain = set(map(x) for x in range(domain_length))
         self.op = op
 
-    def __call__(self, a: T, b: T) -> T:
+    def __call__(self, a: T, b: S) -> T:
         return self.op(a, b)
+
+    def __call__(self, a: set(T), b: set(S)) -> bool:
+        for (x, y) in a, b:
+            if self.op(x, y) not in self.domain:
+                return False
+        return True
+
+    @staticmethod
+    def __call__(a: T, b: S, op: Callable[[T, T], T]) -> T:
+        return op(a, b)
 
     def __str__(self):
         return "{}: S x S -> S".format(self.op.__name__)
@@ -205,7 +216,7 @@ class Distributive(BinaryOperator[T], Generic[T], Lambda, ABC):
         """
         :return: A distributive identity on the set
         """
-        return lambda x, y, z, op0, op1: op0(x, op1(y, z)) == op0(x, y) + op0(x, z)
+        return lambda x, y, z, op0, op1: op0(x, op1(y, z)) == op1(op0(x, y), op0(x, z))
 
     def __str__(self):
         return "{}: S x S x S -> S".format(self.op.__name__)
