@@ -1,6 +1,8 @@
 # aglibrary
 Library for all things algebraic geometry in Python.
 
+Contributors are welcome 😉
+
 ## Dependency
 
  libraries | version |
