@@ -6,7 +6,7 @@ import inspect
 from pyclbr import Function
 import sys
 from typing import Callable, List, TypeVar, Generic, Union
-from matplotlib import docstring
+from matplotlib.axes import Axes
 import numpy, matplotlib, math
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
@@ -300,7 +300,10 @@ class Group(AlgebraicStructure[T], Generic[T]):
     def __hash__(self):
         return hash(self.__str__())
 
-    def __contains__(self, element):
+    def __contains__(self, element: T) -> bool:
+        return element in self.elements
+
+    def __contains__(self, group: "Group") -> bool:
         return element in self.elements
 
     def __iter__(self):
@@ -419,6 +422,64 @@ class Ring(AlgebraicStructure[T], Generic[T]):
             return new
         else:
             return Group(self.elements, self.operations[0])
+
+class Ideal(Ring[T]):
+    """
+    An ideal is a ring with a set of generators
+    """
+    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], generators: set[T]):
+        """
+        :param elements: A set of elements
+        :param operations: A set of binary operations that are associative
+        :param generators: A set of generators
+        """
+        super().__init__(elements, operations)
+        self.generators = generators
+
+    def __str__(self):
+        return "I = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
+
+    def __repr__(self):
+        return "Ideal(elements = {}, operations = {}, generators = {})".format(self.elements, self.operations, self.generators)
+
+    def __eq__(self, other):
+        return self.elements == other.elements and self.operations == other.operations and self.generators == other.generators
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __contains__(self, element):
+        return element in self.elements
+
+    def __iter__(self):
+        return iter(self.elements)
+
+    def __len__(self):
+        return len(self.elements)
+
+    def __getitem__(self, index):
+        return self.elements[index]
+
+    def __setitem__(self, index, element):
+        self.elements[index] = element
+
+    def __delitem__(self, index):
+        del self.elements[index]
+
+    def __add__(self, other):
+        """
+        :param other: An ideal
+        :return: The sum of the two ideals
+        """
+
+    def is_normal(self) -> bool:
+        """
+        :return: True if the ideal is normal, False otherwise
+        """
+        for x in self.generators:
+            for y in self.generators:
+                if (self.operations[0](x,
+
         
 
 class Field(Ring[T], Generic[T]):
@@ -633,4 +694,3 @@ class Interval:
 
     def __str__(self) -> str:
         return "[" if self.is_closed else "(" + self.a + ", " + self.b + ")" if self.is_open else "]"
-
