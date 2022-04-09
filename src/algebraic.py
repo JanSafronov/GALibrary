@@ -1,4 +1,5 @@
 from audioop import cross
+from lib2to3.pgen2.pgen import generate_grammar
 from typing import Callable, Union
 from inference import BinaryOperator, Distributive
 from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
@@ -401,22 +402,22 @@ class Ideal(Generic[F, V]):
     def __init__(self, field: F, affine: AffineVariety[F, V]):
         """
         :param field: A field
-        :param affine: An affine space
+        :param affine: An affine variety
         """
         if BinaryOperator(field, lambda x, y: x * y, False)(field, affine):
-            raise ValueError("The ideal doesn't generate the affine space")
+            raise ValueError("The ideal doesn't generate the affine variety")
         self.field = field
         self.affine = affine
         self.dimension = len(affine)
 
     def __str__(self):
-        return "I = {f ∈ k[x_1, ..., x_n] | f(x) = 0 ∀x ∈ V}" + "\n k = {}, V = {}".format(self.field, self.equations)
+        return "I = {f ∈ k[x_1, ..., x_n] | f(x) = 0 ∀x ∈ V}" + "\n k = {}, V = {}".format(self.field, self.affine)
 
     def __repr__(self):
-        return "Ideal(field = {}, affine = {})".format(self.field, self.equations)
+        return "Ideal(field = {}, affine = {})".format(self.field, self.affine)
 
-    def __eq__(self, other):
-        return self.field == other.field and self.equations == other.equations
+    def __eq__(self, other: "Ideal") -> bool:
+        return self.field == other.field and self.affine == other.affine
 
     def __hash__(self):
         return hash(self.__str__())
@@ -454,10 +455,11 @@ class Ideal(Generic[F, V]):
         """
         :return: True if the ideal is a monomial ideal
         """
-        return all(self.equations[i].polynomial.is_monomial() for i in range(self.dimension))
+        return Ideal.generate(self.field, self.affine.equations) == self
+
     
     @staticmethod
-    def generate(self, equations: Callable[[T, T], T]) -> set[Callable[[tuple[V, ...]], F]]:
+    def generate(self, equations: set[Callable[[tuple[V, ...]], F]]) -> set[Callable[[tuple[V, ...]], F]]:
         """
         :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space
         """
