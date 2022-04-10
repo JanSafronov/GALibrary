@@ -89,24 +89,22 @@ class Scalar:
     def __ceil__(self):
         return Scalar(math.ceil(self.value))
 
-class Vector(List):
+class Vector(Generic[T]):
     """
     A class for representing a vector.
     """
-    def __init__(self, vector: List[T]):
+    def __init__(self, vector: List[T]) -> None:
         """
         :param vector: A list of elements
         """
-        super().__init__(vector)
         self.vector = vector
         self.dimension = len(vector)
 
-    def __init__(self, *args: T):
+    def __init__(self, *args: T) -> None:
         """
         :param vector: A list of elements
         """
-        super().__init__(*args)
-        self.vector = [*args]
+        self.vector = list(args)
         self.dimension = len(self.vector)
 
     @staticmethod
@@ -120,36 +118,35 @@ class Vector(List):
         if as_list:
             return unit
         return Vector(unit)
-        
 
-    def __str__(self):
+    def __str__(self) -> str:
+        return self.vector
+
+    def __repr__(self) -> str:
         return "Vector({})".format(self.vector)
 
-    def __repr__(self):
-        return self.__str__()
-
-    def __eq__(self, other):
+    def __eq__(self, other: "Vector") -> bool:
         return self.vector == other.vector
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, element):
+    def __contains__(self, element: T) -> bool:
         return element in self.vector
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[T]:
         return iter(self.vector)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.vector)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> T:
         return self.vector[index]
 
-    def __setitem__(self, index, element):
+    def __setitem__(self, index: int, element: T) -> None:
         self.vector[index] = element
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         del self.vector[index]
 
     def __add__(self, other: "Vector") -> "Vector":
@@ -157,28 +154,28 @@ class Vector(List):
         :param other: A vector
         :return: The sum of the two vectors
         """
-        return Vector([a + b for a, b in zip(self.vector, other.vector)])
+        return Vector(*[a + b for a, b in zip(self.vector, other.vector)])
 
     def __sub__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
         :return: The difference of the two vectors
         """
-        return Vector([a - b for a, b in zip(self.vector, other.vector)])
+        return Vector(*[a - b for a, b in zip(self.vector, other.vector)])
 
-    def __mul__(self, other: "Vector") -> "Vector":
+    def __mul__(self, other: "Vector") -> T:
         """
         :param other: A vector
         :return: The dot product of the two vectors
         """
-        return sum([a * b for a, b in zip(self.vector, other.vector)])
+        return sum(a * b for a, b in zip(self.vector, other.vector))
 
-    def __rmul__(self, scalar: F) -> "Vector":
+    def __mul__(self, other: F) -> "Vector":
         """
         :param scalar: A scalar
-        :return: The scalar product of the vector and the scalar
+        :return: The product of the vector and the scalar
         """
-        return Vector([scalar * a for a in self.vector])
+        return Vector(*[other * a for a in self.vector])
 
 
     def __truediv__(self, other: "Vector") -> "Vector":
@@ -186,7 +183,7 @@ class Vector(List):
         :param other: A vector
         :return: The quotient of the two vectors
         """
-        return Vector([a / b for a, b in zip(self.vector, other.vector)])
+        return Vector(*[a / b for a, b in zip(self.vector, other.vector)])
 
 class AlgebraicStructure(set[T], Generic[T]):
     """
@@ -204,8 +201,8 @@ class AlgebraicStructure(set[T], Generic[T]):
             for operation in operations:
                 for (x, y) in [(x, y) for x in elements for y in elements]:
                     if not identity(x, y):
-                        raise ValueError("Operation {} does not satisfy Identity {}".format(operation, identity))
-        
+                        raise ValueError("Operation {} does not satisfy identity {}".format(operation, identity))
+    
         self.elements = elements
         self.operations = operations
         self.identities = identities
@@ -303,8 +300,14 @@ class Group(AlgebraicStructure[T], Generic[T]):
     def __contains__(self, element: T) -> bool:
         return element in self.elements
 
-    def __contains__(self, group: "Group") -> bool:
-        return element in self.elements
+    def __contains__(self, other: set[T]) -> bool:
+        return (e in self.elements for e in other)
+
+    def __le__(self, __s: set[T]) -> bool:
+        """
+        Subgroup relation
+        """
+        return __s in self and Group(__s, self.operation)
 
     def __iter__(self):
         return iter(self.elements)
@@ -340,7 +343,6 @@ class Group(AlgebraicStructure[T], Generic[T]):
                 if (self.operations[0](x, y) != self.operations[0](y, x)):
                     return False
             
-
     def abelian(self) -> "Group":
         """
         :return: The abelian group of the group
@@ -357,11 +359,13 @@ class Ring(AlgebraicStructure[T], Generic[T]):
     A ring is a set of elements 
     with two binary operations on it and identities that this operations satisfies.
     """
-    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]]):
+    def __init__(self, elements: set[T], operations: list[Callable[[T, T], T]]):
         """
         :param elements: A set of elements
-        :param operations: A set of binary operations that are associative
+        :param operations: A set of two binary operations that are associative
         """
+        if (len(operations) != 2):
+            raise ValueError("The ring must have two operations")
         super().__init__(elements, operations, 
         Group(elements, operations[0]).abelian().get_identities() | Monoid(elements, operations[1]).get_identities() |
         {lambda x, y: Commutative.__call__(self.operations[0](x, y), self.operations[1])})
@@ -472,15 +476,13 @@ class Ideal(Ring[T]):
         :return: The sum of the two ideals
         """
 
-        
-
 class Field(Ring[T], Generic[T]):
     """
     A field is a set of elements 
     with two binary operation on it and identities that this operations satisfies.
     Definitively it is a commutative ring with non zero invertible elements and 0 != 1.
     """
-    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]]):
+    def __init__(self, elements: set[T], operations: list[Callable[[T, T], T]]):
         """
         :param elements: A set of elements
         :param operations: A set of binary operations that are associative and commutative
