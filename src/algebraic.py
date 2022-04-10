@@ -1,6 +1,7 @@
 from audioop import cross
 from lib2to3.pgen2.pgen import generate_grammar
-from typing import Callable, Iterator, Union
+from typing import Callable, Iterable, Iterator, Union
+from matplotlib import pyplot as plt
 
 from sympy import Sum, gcd, lambdify
 from inference import BinaryOperator, Distributive
@@ -37,12 +38,20 @@ class VectorSpace(Set, Generic[F, V]):
         :param basis: A list of vectors
         """
         self.field = field
-        self.basis = basis
-        vecs = set(map(lambda v: map(lambda λ: λ * v, field), basis))
-        self.vectors = vecs[0]
-        for i in range(len(vecs) - 1):
-            self.vectors = set(map(sum, [(j, k) for j in self.vectors for k in vecs[i + 1]]))
 
+        vecs = []
+        
+        for v in basis:
+            vecs.append([v * λ for λ in field])
+
+        self.vectors : list[V] = vecs[0]
+        print(vecs)
+        for i in range(len(vecs) - 1):
+            print([[v, u] for v in self.vectors for u in vecs[i + 1]])
+            self.vectors = [v + u for v in self.vectors for u in vecs[i + 1]]
+            print(self.vectors)
+
+        print(self.vectors)
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
 
@@ -82,7 +91,7 @@ class VectorSpace(Set, Generic[F, V]):
             raise ValueError("The vector spaces are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The vector spaces are not the same dimension")
-        return VectorSpace(self.field, [self.basis[i] + other.basis[i] for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.vectors[i] + other.vectors[i] for i in range(self.dimension)])
 
     def __sub__(self, other: "VectorSpace") -> "VectorSpace":
         """
@@ -93,7 +102,7 @@ class VectorSpace(Set, Generic[F, V]):
             raise ValueError("The vector spaces are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The vector spaces are not the same dimension")
-        return VectorSpace(self.field, [self.basis[i] - other.basis[i] for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.vectors[i] - other.vectors[i] for i in range(self.dimension)])
 
     def __mul__(self, other: "VectorSpace") -> F:
         """
@@ -104,7 +113,7 @@ class VectorSpace(Set, Generic[F, V]):
             raise ValueError("The vector spaces are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The vector spaces are not the same dimension")
-        return sum(self.field, [self.basis[i] * other.basis[i] for i in range(self.dimension)])
+        return sum(self.field, [self.vectors[i] * other.vectors[i] for i in range(self.dimension)])
 
     def __rmul__(self, scalar: F) -> "VectorSpace":
         """
@@ -113,14 +122,14 @@ class VectorSpace(Set, Generic[F, V]):
         """
         if not isinstance(scalar, Scalar):
             raise ValueError("The argument is not a scalar")
-        return VectorSpace(self.field, [self.basis[i] * scalar for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.vectors[i] * scalar for i in range(self.dimension)])
 
     def parametricEquation(self) -> Callable[[tuple[V, ...]], V]:
         """
         :return: A parametric equation for the vector space
         """
-        print(self.basis)
-        mcrossp = np.cross(self.basis[0], self.basis[1])
+        print(self.vectors)
+        mcrossp = np.cross(self.vectors[0], self.vectors[1])
         print(mcrossp)
         dim = len(mcrossp)
         print(sum(mcrossp[:dim - 1] / mcrossp[dim - 1] * [2, 3]))
@@ -190,7 +199,7 @@ class AffineSpace():
         """
         :return: A parametric equation for the affine space
         """
-        mcrossp = np.cross(self.vector_space.basis[0], self.vector_space.basis[1])
+        mcrossp = np.cross(self.vector_space.vectors[0], self.vector_space.vectors[1])
         dim = len(mcrossp)
         return lambda Λ: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * (Λ[i] + self.point[i]) for i in range(dim - 1))
 
@@ -338,7 +347,8 @@ class Monomial(Generic[F, V]):
     """
     A monomial is a polynomial with a single term
     """
-    def __init__(self, field: F, degrees: tuple[int, ...], coefficient: F) -> None:
+
+    def __init__(self, field: F, degrees: list[int], coefficient: F) -> None:
         """
         :param field: A field
         :param degrees: A tuple of degrees
@@ -346,16 +356,6 @@ class Monomial(Generic[F, V]):
         """
         self.field = field
         self.monomial = lambda X: math.prod(map(lambda x, i: x ** degrees[i], X, range(len(degrees)))) * coefficient
-
-    def __init__(self, field: F, polynomial: Callable[[tuple[V, ...]], F]) -> None:
-        """
-        :param field: A field
-        :param polynomial: A polynomial
-        """
-        self.field = field
-        if Ideal.reduce(polynomial) is not (lambda X: X):
-            raise ValueError("The polynomial is not a monomial")
-        self.monomial = polynomial
 
     def __str__(self) -> str:
         return "F = {}, f(X) = {})".format(self.field, self.monomial)
@@ -389,6 +389,42 @@ class Monomial(Generic[F, V]):
         if self.field != other.field:
             raise ValueError("The monomials are not in the same field ")
         return lambda X: self.monomial(X) - other.monomial(X)
+
+    def plot2d(self, x_range: tuple[float, float], y_range: tuple[float, float], resolution: int = 100) -> None:
+        """
+        :param x_range: The range of the x-axis
+        :param y_range: The range of the y-axis
+        :param resolution: The resolution of the plot
+        :return: None
+        """
+        x_values = np.linspace(x_range[0], x_range[1], resolution)
+        y_values = np.linspace(y_range[0], y_range[1], resolution)
+        X, Y = np.meshgrid(x_values, y_values)
+        Z = self.monomial([X, Y])
+        #Z = Z.reshape(X.shape)
+        plt.plot
+        #plt.colorbar()
+        plt.show()
+
+    def plot3d(self, x_range: tuple[float, float], y_range: tuple[float, float], z_range: tuple[float, float], resolution: int = 100) -> None:
+        """
+        :param x_range: The range of the x-axis
+        :param y_range: The range of the y-axis
+        :param z_range: The range of the z-axis
+        :param resolution: The resolution of the plot
+        :return: None
+        """
+        x_values = np.linspace(x_range[0], x_range[1], resolution)
+        y_values = np.linspace(y_range[0], y_range[1], resolution)
+        z_values = np.linspace(z_range[0], z_range[1], resolution)
+        X, Y, Z = np.meshgrid(x_values, y_values, z_values)
+        Z = np.array([self.monomial((x, y, z)) for x, y, z in zip(np.ravel(X), np.ravel(Y), np.ravel(Z))])
+        Z = Z.reshape(X.shape)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, Z, cmap=plt.cm.jet)
+        plt.show()
+        
 
 class Ideal(Generic[F, V]):
     """
