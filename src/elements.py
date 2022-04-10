@@ -472,14 +472,6 @@ class Ideal(Ring[T]):
         :return: The sum of the two ideals
         """
 
-    def is_normal(self) -> bool:
-        """
-        :return: True if the ideal is normal, False otherwise
-        """
-        for x in self.generators:
-            for y in self.generators:
-                if (self.operations[0](x,
-
         
 
 class Field(Ring[T], Generic[T]):

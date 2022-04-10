@@ -1,6 +1,8 @@
 from audioop import cross
 from lib2to3.pgen2.pgen import generate_grammar
 from typing import Callable, Union
+
+from sympy import Sum, gcd, lambdify
 from inference import BinaryOperator, Distributive
 from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
 import elements
@@ -29,14 +31,17 @@ class VectorSpace(Set, Generic[F, V]):
         self.field = field
         self.vectors = vectors
 
-    def __init__(self, field: F, basis: list[V]):
+    def __init__(self, field: F, basis: Union[Module[F, V], Group[V]]):
         """
         :param field: A field
         :param basis: A list of vectors
         """
         self.field = field
         self.basis = basis
-        self.vectors = set((lambda Λ: map(lambda v, λ: λ * v, basis, Λ))({x, y, z}) for x in field for y in field for z in field)
+        vecs = set(map(lambda v: map(lambda λ: λ * v, field), basis))
+        self.vectors = vecs[0]
+        for i in range(len(vecs) - 1):
+            self.vectors = set(map(sum, [(j, k) for j in self.vectors for k in vecs[i + 1]]))
 
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
@@ -119,7 +124,7 @@ class VectorSpace(Set, Generic[F, V]):
         print(mcrossp)
         dim = len(mcrossp)
         print(sum(mcrossp[:dim - 1] / mcrossp[dim - 1] * [2, 3]))
-        return lambda Λ: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * Λ[i] for i in range(dim - 1))
+        return lambda x: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * x[i] for i in range(dim - 1))
 
 class AffineSpace():
     """
@@ -254,7 +259,7 @@ class AffineVariety(Generic[F, V]):
             raise ValueError("The affine varieties are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The affine varieties are not the same dimension")
-        return AffineVariety(self.field, self.equations | other.equations)
+        return AffineVariety(self.field, (lambda T: self.equations[i](T) + other.equations[i](T) for i in range(self.dimension)))
 
     def __and__(self, other: "AffineVariety") -> "AffineVariety":
         """
@@ -265,7 +270,7 @@ class AffineVariety(Generic[F, V]):
             raise ValueError("The affine varieties are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The affine varieties are not the same dimension")
-        return AffineVariety(self.field, (lambda T: self.equations[i](T) * other.equations[i](T) for i in range(self.dimension)))
+        return AffineVariety(self.field, (lambda T: self.equations[i](T) + other.equations[i](T) for i in range(self.dimension)))
 
     def solutions(self) -> set[tuple[V, ...]]:
         """
@@ -308,12 +313,6 @@ class RationalFunction(Generic[F, V]):
     def __len__(self):
         return len(self.polynomial)
 
-    def __getitem__(self, index):
-        return self.polynomial[index]
-
-    def __setitem__(self, index, affine_variety):
-        self.polynomial[index] = affine_variety
-
     def __delitem__(self, index):
         del self.polynomial[index]
 
@@ -337,21 +336,31 @@ class RationalFunction(Generic[F, V]):
 
 class Monomial(Generic[F, V]):
     """
-    A monomial is a rational function with a single variable
+    A monomial is a polynomial with a single term
     """
-    def __init__(self, field: F, variable: V):
+    def __init__(self, field: F, degrees: tuple[int, ...], coefficient: F):
         """
         :param field: A field
-        :param variable: A variable
+        :param degrees: A tuple of degrees
+        :param coefficient: A coefficient
         """
         self.field = field
-        self.variable = variable
+        self.monomial = lambda X: math.prod(map(lambda x, i: x ** degrees[i], X, range(len(degrees)))) * coefficient
+
+    def __init__(self, field: F, polynomial: Callable[[tuple[V, ...]], F]):
+        """
+        :param field: A field
+        :param polynomial: A polynomial
+        """
+        self.field = field
+        if Ideal.reduce(polynomial) == (lambda X: X):
+            self.monomial = polynomial
 
     def __str__(self):
-        return "Monomial(field = {}, variable = {})".format(self.field, self.variable)
+        return "F = {}, f(X) = {})".format(self.field, self.monomial)
 
     def __repr__(self):
-        return self.__str__()
+        return "Monomial(field = {}, variable = {})".format(self.field, self.variable)
 
     def __eq__(self, other):
         return self.field == other.field and self.variable == other.variable
@@ -377,14 +386,14 @@ class Monomial(Generic[F, V]):
     def __delitem__(self, index):
         del self.variable[index]
 
-    def __add__(self, other: "Monomial") -> "Monomial":
+    def __add__(self, other: "Monomial") -> Callable[[tuple[V, ...]], F]:
         """
         :param other: A monomial
         :return: The sum of the two monomials
         """
         if self.field != other.field:
             raise ValueError("The monomials are not in the same field")
-        return Monomial(self.field, self.variable + other.variable)
+        return Monomial(self.field, self.variable + other.variable, self.coefficient + other.coefficient)
 
     def __sub__(self, other: "Monomial") -> "Monomial":
         """
@@ -434,8 +443,8 @@ class Ideal(Generic[F, V]):
     def __getitem__(self, index):
         return self.equations[index]
 
-    def __setitem__(self, index, rational_function):
-        self.equations[index] = rational_function
+    def __setitem__(self, index, polynomial: Callable[[V], F]):
+        self.affine[index] = rational_function
 
     def __delitem__(self, index):
         del self.equations[index]
@@ -449,14 +458,13 @@ class Ideal(Generic[F, V]):
             raise ValueError("The ideals are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The ideals are not the same dimension")
-        return Ideal(self.field, [self.equations[i] + other.equations[i] for i in range(self.dimension)])
+        return Ideal(self.field, AffineVariety(self.field, [self.equations[i] + other.equations[i] for i in range(self.dimension)]))
 
     def is_monomial(self) -> bool:
         """
         :return: True if the ideal is a monomial ideal
         """
         return Ideal.generate(self.field, self.affine.equations) == self
-
     
     @staticmethod
     def generate(self, equations: set[Callable[[tuple[V, ...]], F]]) -> set[Callable[[tuple[V, ...]], F]]:
@@ -465,3 +473,11 @@ class Ideal(Generic[F, V]):
         """
         return Ideal(self.field, AffineVariety(self.field, equations))
 
+    @staticmethod
+    def reduce(polynomial: Callable[[tuple[V, ...]], F]) -> Callable[[tuple[V, ...]], F]:
+        """
+        Note that the algorithm may fail if the field doesn't contain the rational numbers.
+        :param polynomial: A polynomial
+        :return: The reduction of the polynomial
+        """
+        return lambda X: polynomial(X) / math.gcd(polynomial(X), np.gradient(polynomial(X)))
