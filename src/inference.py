@@ -1,7 +1,4 @@
-"""
-Definitions taken from rules of inference in formal logic.
-Particularly from rules of replacement.
-"""
+
 
 from abc import ABC
 from ast import Call, Lambda
@@ -292,6 +289,10 @@ class Inverse(BinaryOperator[T] ,Generic[T], Lambda, ABC):
 
     def __call__(self, a: T, b: T) -> T:
         return self.op(a, b)
+
+    @staticmethod
+    def __call__(self, op: Callable[[T, T], T]) -> Callable[[T, T], T]:
+        return lambda x, y: self.op(x, y)
 
     @staticmethod
     def __call__(e: T) -> "Inverse":

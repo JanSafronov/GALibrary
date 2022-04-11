@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from sympy import Sum, gcd, lambdify
 from inference import BinaryOperator, Distributive
-from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
+from elements import AlgebraicStructure, Group, Field, Module, Vector
 import elements
 import numpy as np
 import matplotlib, math
@@ -120,7 +120,7 @@ class VectorSpace(Set, Generic[F, V]):
         :param scalar: A scalar
         :return: The scalar product of the vector space with the scalar
         """
-        if not isinstance(scalar, Scalar):
+        if not isinstance(scalar, float):
             raise ValueError("The argument is not a scalar")
         return VectorSpace(self.field, [self.vectors[i] * scalar for i in range(self.dimension)])
 

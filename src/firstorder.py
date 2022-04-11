@@ -1,6 +1,3 @@
-"""
-Definitions taken from first order logic.
-"""
 
 from argparse import Action
 from ast import Lambda, Set, Tuple
@@ -15,7 +12,7 @@ from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 V = TypeVar("V")
 
-class Identity(Generic[V], Lambda, ABC):
+class Identity(Generic[V]):
     """
     Identity is a true universally quantified formula.
     """
@@ -49,10 +46,11 @@ class Identity(Generic[V], Lambda, ABC):
             self.formula(var)
 
     def __str__(self):
-        var_format = {0: "x", 1: "y", 2: "z", 3: "w", 4: "t", 5: "u", 6: "v"}
+        var_format = ["x", "y", "z", "w", "t", "u", "v"]
         if self.vars > 6:
-            var_format = lambda x: {x: f"i = 1, ..., {self.vars} x_i"}
-        return "for all {} ∈ {} : {}".format(", ".join([val for key, val in var_format]), self.domain, self.formula)
+            var_format = list(map(lambda i: "x_" + str(i), range(self.vars)))
+        print(var_format)
+        return "for all {} ∈ {} : {}".format(", ".join([val for val in var_format]), self.domain, self.formula)
 
     def __repr__(self):
         return "Identity({}, {})".format(self.domain, self.formula)
