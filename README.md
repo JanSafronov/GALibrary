@@ -5,5 +5,6 @@ Library for all things algebraic geometry in Python.
 
  libraries | version |
 -----------|---------|
-   numpy   | 1.22.3  |
-matplotlib | 3.5.1   |
+   numpy   | > 1.22.3  |
+matplotlib | > 3.5.1   |
+   sympy   | > 1.10.1  |

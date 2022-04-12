@@ -1,6 +1,3 @@
-"""
-Definitions taken from first order logic.
-"""
 
 from argparse import Action
 from ast import Lambda, Set, Tuple
@@ -15,11 +12,11 @@ from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 
 V = TypeVar("V")
 
-class Identity(Generic[V], Lambda, ABC):
+class Identity(Generic[V]):
     """
     Identity is a true universally quantified formula.
     """
-    def __init__(self, domain: set[V], formula: Callable, vars: int):
+    def __init__(self, domain: set[V], formula: Callable, vars: int) -> None:
         """
         :param domain: A set of elements to be quantified
         :param formula: A lambda expression
@@ -29,7 +26,7 @@ class Identity(Generic[V], Lambda, ABC):
         self.formula = formula
         self.vars = vars
 
-    def __init__(self, domain: set[V], formula: Callable):
+    def __init__(self, domain: set[V], formula: Callable) -> None:
         """
         :param domain: A set of elements to be quantified
         :param formula: A lambda expression
@@ -39,20 +36,25 @@ class Identity(Generic[V], Lambda, ABC):
         self.vars = len(inspect.signature(formula).parameters)
 
     def __call__(self, *args):
-        return self.formula(*args)
+        exprs = self.formula(*args)
+        for i in range(len(args) - 2):
+            if exprs[i] is not exprs[i + 1]:
+                return False
+        return True
 
-    def __or__(self, other):
+    def __or__(self, other: "Identity") -> "Identity":
         return Identity(self.domain | other.domain, lambda x: self.formula(x) or other.formula(x))
 
-    def is_true(self):
+    def is_true(self) -> bool:
         for var in self.domain:
             self.formula(var)
 
-    def __str__(self):
-        var_format = {0: "x", 1: "y", 2: "z", 3: "w", 4: "t", 5: "u", 6: "v"}
+    def __str__(self) -> str:
+        var_format = ["x", "y", "z", "w", "t", "u", "v"]
         if self.vars > 6:
-            var_format = lambda x: {x: f"i = 1, ..., {self.vars} x_i"}
-        return "for all {} ∈ {} : {}".format(", ".join([val for key, val in var_format]), self.domain, self.formula)
+            var_format = list(map(lambda i: "x_" + str(i), range(self.vars)))
+        print(var_format)
+        return "for all {} ∈ {} : {}".format(", ".join([val for val in var_format]), self.domain, self.formula)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Identity({}, {})".format(self.domain, self.formula)

@@ -1,14 +1,13 @@
-"""
-Definitions taken from rules of inference in formal logic.
-Particularly from rules of replacement.
-"""
+
 
 from abc import ABC
 from ast import Call, Lambda
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, Iterable, TypeVar
 
-T = TypeVar("T")
-S = TypeVar("S")
+from numpy import iterable
+
+T = TypeVar('T')
+S = TypeVar('S')
 
 # Remove later if unnecessary class
 class BinaryOperator(Generic[T], Lambda, ABC):
@@ -47,10 +46,9 @@ class BinaryOperator(Generic[T], Lambda, ABC):
     def __call__(self, a: T, b: S) -> T:
         return self.op(a, b)
 
-    def __call__(self, a: set(T), b: set(S)) -> bool:
-        for (x, y) in a, b:
-            if self.op(x, y) not in self.domain:
-                return False
+    def __call__(self, a: set[T], b: set[S]) -> bool:
+        if self.op(a, b) not in self.domain:
+            return False
         return True
 
     @staticmethod
@@ -98,7 +96,7 @@ class Associative(BinaryOperator[T], Generic[T], Lambda, ABC):
         """
         :return: An associative identity on the set
         """
-        return lambda x, y, z, opp: opp(opp(x, y), z) == opp(x, opp(y, z))
+        return lambda x, y, z, opp: [opp(opp(x, y), z), opp(x, opp(y, z))]
 
     def __str__(self):
         return "{}: S x S x S -> S".format(self.op.__name__)
@@ -216,7 +214,7 @@ class Distributive(BinaryOperator[T], Generic[T], Lambda, ABC):
         """
         :return: A distributive identity on the set
         """
-        return lambda x, y, z, op0, op1: op0(x, op1(y, z)) == op1(op0(x, y), op0(x, z))
+        return lambda x, y, z, op0, op1: [op0(x, op1(y, z)), op1(op0(x, y), op0(x, z))]
 
     def __str__(self):
         return "{}: S x S x S -> S".format(self.op.__name__)
@@ -257,7 +255,7 @@ class IdentityElement(BinaryOperator[T], Generic[T], Lambda, ABC):
         :param e: Identity element of the set
         :return: An identity element identity on the set
         """
-        return lambda x, op: op(e, x) == op(x, e) == x
+        return lambda x, op: [op(e, x), op(x, e), x]
 
     def __str__(self):
         return "{}: S -> S".format(self.op.__name__)
@@ -293,13 +291,17 @@ class Inverse(BinaryOperator[T] ,Generic[T], Lambda, ABC):
         return self.op(a, b)
 
     @staticmethod
+    def __call__(self, op: Callable[[T, T], T]) -> Callable[[T, T], T]:
+        return lambda x, y: self.op(x, y)
+
+    @staticmethod
     def __call__(e: T) -> "Inverse":
         """
         :param e: Identity element of the set
         :param op: An inverse operator
         :return: An inverse identity on the set
         """
-        return lambda x, y, op: op(x, y) == op(y, x) == e
+        return lambda x, y, op: [op(x, y), op(y, x), e]
 
     def __str__(self):
         return "{}: S -> S".format(self.op.__name__)

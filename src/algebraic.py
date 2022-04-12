@@ -1,10 +1,11 @@
 from audioop import cross
 from lib2to3.pgen2.pgen import generate_grammar
-from typing import Callable, Union
+from typing import Callable, Iterable, Iterator, Union
+from matplotlib import pyplot as plt
 
 from sympy import Sum, gcd, lambdify
 from inference import BinaryOperator, Distributive
-from elements import AlgebraicStructure, Group, Field, Module, Vector, Scalar
+from elements import AlgebraicStructure, Group, Field, Module, Vector
 import elements
 import numpy as np
 import matplotlib, math
@@ -22,26 +23,35 @@ class VectorSpace(Set, Generic[F, V]):
     """
     Vector space is an abelian group under addition and an F-module of vectors with a field F
     """
-    def __init__(self, field: F, vectors: Union[Module[F, V], Group[V]]):
+    def __init__(self, vectors: Module[F, V], basis: list[V]) -> None:
         """
         :param field: A field
         :param vectors: An abelian group or a module of vectors
         """
 
-        self.field = field
+        self.field = vectors.ring
         self.vectors = vectors
-
-    def __init__(self, field: F, basis: Union[Module[F, V], Group[V]]):
-        """
+        self.basis = basis
+        
+    """def __init__(self, field: F, basis: Union[Module[F, V], Group[V]]) -> None:
+        
         :param field: A field
         :param basis: A list of vectors
-        """
+        
         self.field = field
-        self.basis = basis
-        vecs = set(map(lambda v: map(lambda λ: λ * v, field), basis))
+
+        vecs = []
+        
+        for v in basis:
+            vecs.append([v * λ for λ in field])
+
         self.vectors = vecs[0]
         for i in range(len(vecs) - 1):
-            self.vectors = set(map(sum, [(j, k) for j in self.vectors for k in vecs[i + 1]]))
+            self.vectors = [v + u for v in self.vectors for u in vecs[i + 1]]
+            
+        print(self.vectors)
+
+        self.basis = basis:"""
 
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
@@ -49,28 +59,28 @@ class VectorSpace(Set, Generic[F, V]):
     def __repr__(self):
         return "VectorSpace(field = {}, vectors = {})".format(self.field, self.vectors)
 
-    def __eq__(self, other):
+    def __eq__(self, other: "VectorSpace") -> bool:
         return self.field == other.field and self.vectors == other.vectors
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, vector):
+    def __contains__(self, vector) -> bool:
         return vector in self.vectors
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[V]:
         return iter(self.vectors)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.vectors)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> V:
         return self.vectors[index]
 
-    def __setitem__(self, index, vector):
+    def __setitem__(self, index: int, vector: V) -> None:
         self.vectors[index] = vector
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         del self.vectors[index]
 
     def __add__(self, other: "VectorSpace") -> "VectorSpace":
@@ -82,7 +92,7 @@ class VectorSpace(Set, Generic[F, V]):
             raise ValueError("The vector spaces are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The vector spaces are not the same dimension")
-        return VectorSpace(self.field, [self.basis[i] + other.basis[i] for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.vectors[i] + other.vectors[i] for i in range(self.dimension)])
 
     def __sub__(self, other: "VectorSpace") -> "VectorSpace":
         """
@@ -93,7 +103,7 @@ class VectorSpace(Set, Generic[F, V]):
             raise ValueError("The vector spaces are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The vector spaces are not the same dimension")
-        return VectorSpace(self.field, [self.basis[i] - other.basis[i] for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.vectors[i] - other.vectors[i] for i in range(self.dimension)])
 
     def __mul__(self, other: "VectorSpace") -> F:
         """
@@ -104,33 +114,30 @@ class VectorSpace(Set, Generic[F, V]):
             raise ValueError("The vector spaces are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The vector spaces are not the same dimension")
-        return sum(self.field, [self.basis[i] * other.basis[i] for i in range(self.dimension)])
+        return sum(self.field, [self.vectors[i] * other.vectors[i] for i in range(self.dimension)])
 
-    def __rmul__(self, scalar: F):
+    def __rmul__(self, scalar: F) -> "VectorSpace":
         """
         :param scalar: A scalar
         :return: The scalar product of the vector space with the scalar
         """
-        if not isinstance(scalar, Scalar):
+        if not isinstance(scalar, float):
             raise ValueError("The argument is not a scalar")
-        return VectorSpace(self.field, [self.basis[i] * scalar for i in range(self.dimension)])
+        return VectorSpace(self.field, [self.vectors[i] * scalar for i in range(self.dimension)])
 
     def parametricEquation(self) -> Callable[[tuple[V, ...]], V]:
         """
         :return: A parametric equation for the vector space
         """
-        print(self.basis)
-        mcrossp = np.cross(self.basis[0], self.basis[1])
-        print(mcrossp)
+        mcrossp = np.cross(self.basis[0].coordinates, self.basis[1].coordinates)
         dim = len(mcrossp)
-        print(sum(mcrossp[:dim - 1] / mcrossp[dim - 1] * [2, 3]))
         return lambda x: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * x[i] for i in range(dim - 1))
 
 class AffineSpace():
     """
     An affine space is a vector space with a point
     """
-    def __init__(self, vector_space: VectorSpace, point: Union[Vector, List[F]]):
+    def __init__(self, vector_space: VectorSpace, point: Union[Vector, List[F]]) -> None:
         """
         :param vector_space: A vector space
         :param point: A point in the affine space
@@ -138,34 +145,34 @@ class AffineSpace():
         self.vector_space = vector_space
         self.point = point
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "V = {} affine space over field F = {}".format(self.vectors, self.field)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "AffineSpace(vector_space = {}, point = {})".format(self.vector_space, self.point)
 
-    def __eq__(self, other):
+    def __eq__(self, other: "AffineSpace") -> bool:
         return self.vector_space == other.vector_space and self.point == other.point
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, vector):
+    def __contains__(self, vector: int) -> bool:
         return vector in self.vector_space
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         return iter(self.vector_space)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.vector_space)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Vector:
         return self.vector_space[index]
 
-    def __setitem__(self, index, vector):
+    def __setitem__(self, index: int, vector: Vector) -> None:
         self.vector_space[index] = vector
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         del self.vector_space[index]
 
     def __add__(self, other: "AffineSpace") -> "AffineSpace":
@@ -190,7 +197,7 @@ class AffineSpace():
         """
         :return: A parametric equation for the affine space
         """
-        mcrossp = np.cross(self.vector_space.basis[0], self.vector_space.basis[1])
+        mcrossp = np.cross(self.vector_space.basis[0].coordinates, self.vector_space.basis[1].coordinates)
         dim = len(mcrossp)
         return lambda Λ: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * (Λ[i] + self.point[i]) for i in range(dim - 1))
 
@@ -198,7 +205,7 @@ class AffineVariety(Generic[F, V]):
     """ 
     An affine variety is a set of solutions of a system of polynomial equations with coefficients in the field
     """
-    def __init__(self, field: F, equations: set[Callable[[tuple[V, ...]], F]]):
+    def __init__(self, field: F, equations: set[Callable[[tuple[V, ...]], F]]) -> None:
         """
         :param field: A field
         :param equations: A list of equations
@@ -206,16 +213,16 @@ class AffineVariety(Generic[F, V]):
         self.field = field
         self.equations = equations
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "A = {} affine variety with polynomial equations \n{} over field F = {}".format(self.vectors, self.equations, self.field)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "AffineVariety(field = {}, equations = {})".format(self.field, self.equations)
 
-    def __eq__(self, other):
+    def __eq__(self, other: "AffineVariety") -> bool:
         return self.field == other.field and self.equations == other.equations
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
     def __contains__(self, affine_space: AffineSpace) -> bool:
@@ -224,19 +231,19 @@ class AffineVariety(Generic[F, V]):
     def __contains__(self, element: F) -> bool:
         return map(self.equations[i](element) == 0 for i in range(len(self.equations)))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[AffineSpace]:
         return iter(self.equations)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.equations)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Callable[[tuple[V, ...]], F]:
         return self.equations[index]
 
-    def __setitem__(self, index, affine_space):
-        self.equations[index] = affine_space
+    def __setitem__(self, index: int, equation: Callable[[tuple[V, ...]], F]) -> None:
+        self.equations[index] = equation
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         del self.equations[index]
 
     def __add__(self, other: "AffineVariety") -> "AffineVariety":
@@ -284,7 +291,7 @@ class RationalFunction(Generic[F, V]):
     """
     A rational function with coefficients in a field is a quotient of two polynomials 
     """
-    def __init__(self, field: F, polynomial: Callable[[tuple[V, ...]], F]):
+    def __init__(self, field: F, polynomial: Callable[[tuple[V, ...]], F]) -> None:
         """
         :param field: A field
         :param polynomial: A polynomial
@@ -292,28 +299,28 @@ class RationalFunction(Generic[F, V]):
         self.field = field
         self.polynomial = polynomial
 
-    def __str__(self):
+    def __str__(self) -> str:
+        return "F = {}, f = {})".format(self.field, self.polynomial)
+
+    def __repr__(self) -> str:
         return "RationalFunction(field = {}, polynomial = {})".format(self.field, self.polynomial)
 
-    def __repr__(self):
-        return self.__str__()
-
-    def __eq__(self, other):
+    def __eq__(self, other: "RationalFunction") -> bool:
         return self.field == other.field and self.polynomial == other.polynomial
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, affine_variety: AffineVariety):
+    def __contains__(self, affine_variety: AffineVariety) -> bool:
         return affine_variety in self.polynomial
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[AffineVariety]:
         return iter(self.polynomial)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.polynomial)
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         del self.polynomial[index]
 
     def __add__(self, other: "RationalFunction") -> "RationalFunction":
@@ -338,7 +345,8 @@ class Monomial(Generic[F, V]):
     """
     A monomial is a polynomial with a single term
     """
-    def __init__(self, field: F, degrees: tuple[int, ...], coefficient: F):
+
+    def __init__(self, field: F, degrees: list[int], coefficient: F) -> None:
         """
         :param field: A field
         :param degrees: A tuple of degrees
@@ -347,44 +355,20 @@ class Monomial(Generic[F, V]):
         self.field = field
         self.monomial = lambda X: math.prod(map(lambda x, i: x ** degrees[i], X, range(len(degrees)))) * coefficient
 
-    def __init__(self, field: F, polynomial: Callable[[tuple[V, ...]], F]):
-        """
-        :param field: A field
-        :param polynomial: A polynomial
-        """
-        self.field = field
-        if Ideal.reduce(polynomial) == (lambda X: X):
-            self.monomial = polynomial
-
-    def __str__(self):
+    def __str__(self) -> str:
         return "F = {}, f(X) = {})".format(self.field, self.monomial)
 
-    def __repr__(self):
-        return "Monomial(field = {}, variable = {})".format(self.field, self.variable)
+    def __repr__(self) -> str:
+        return "Monomial(field = {}, monomial = {})".format(self.field, self.monomial)
 
-    def __eq__(self, other):
-        return self.field == other.field and self.variable == other.variable
+    def __eq__(self, other: "Monomial") -> bool:
+        return self.field == other.field and self.monomial == other.monomial
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, affine_variety: AffineVariety):
-        return affine_variety in self.variable
-
-    def __iter__(self):
-        return iter(self.variable)
-
-    def __len__(self):
-        return len(self.variable)
-
-    def __getitem__(self, index):
-        return self.variable[index]
-
-    def __setitem__(self, index, affine_variety):
-        self.variable[index] = affine_variety
-
-    def __delitem__(self, index):
-        del self.variable[index]
+    def __contains__(self, affine_variety: AffineVariety) -> bool:
+        return affine_variety in self.monomial
 
     def __add__(self, other: "Monomial") -> Callable[[tuple[V, ...]], F]:
         """
@@ -393,22 +377,58 @@ class Monomial(Generic[F, V]):
         """
         if self.field != other.field:
             raise ValueError("The monomials are not in the same field")
-        return Monomial(self.field, self.variable + other.variable, self.coefficient + other.coefficient)
+        return lambda X: self.monomial(X) + other.monomial(X)
 
-    def __sub__(self, other: "Monomial") -> "Monomial":
+    def __sub__(self, other: "Monomial") -> Callable[[tuple[V, ...]], F]:
         """
         :param other: A monomial
         :return: The difference of the two monomials
         """
         if self.field != other.field:
             raise ValueError("The monomials are not in the same field ")
-        return Monomial(self.field, self.variable - other.variable)
+        return lambda X: self.monomial(X) - other.monomial(X)
+
+    def plot2d(self, x_range: tuple[float, float], y_range: tuple[float, float], resolution: int = 100) -> None:
+        """
+        :param x_range: The range of the x-axis
+        :param y_range: The range of the y-axis
+        :param resolution: The resolution of the plot
+        :return: None
+        """
+        x_values = np.linspace(x_range[0], x_range[1], resolution)
+        y_values = np.linspace(y_range[0], y_range[1], resolution)
+        X, Y = np.meshgrid(x_values, y_values)
+        Z = self.monomial([X, Y])
+        #Z = Z.reshape(X.shape)
+        plt.plot
+        #plt.colorbar()
+        plt.show()
+
+    def plot3d(self, x_range: tuple[float, float], y_range: tuple[float, float], z_range: tuple[float, float], resolution: int = 100) -> None:
+        """
+        :param x_range: The range of the x-axis
+        :param y_range: The range of the y-axis
+        :param z_range: The range of the z-axis
+        :param resolution: The resolution of the plot
+        :return: None
+        """
+        x_values = np.linspace(x_range[0], x_range[1], resolution)
+        y_values = np.linspace(y_range[0], y_range[1], resolution)
+        z_values = np.linspace(z_range[0], z_range[1], resolution)
+        X, Y, Z = np.meshgrid(x_values, y_values, z_values)
+        Z = np.array([self.monomial((x, y, z)) for x, y, z in zip(np.ravel(X), np.ravel(Y), np.ravel(Z))])
+        Z = Z.reshape(X.shape)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, Z, cmap=plt.cm.jet)
+        plt.show()
+        
 
 class Ideal(Generic[F, V]):
     """
     An ideal of an affine variety is a set of polynomials in a polynomial ring over a field that vanish on the variety
     """
-    def __init__(self, field: F, affine: AffineVariety[F, V]):
+    def __init__(self, field: F, affine: AffineVariety[F, V]) -> None:
         """
         :param field: A field
         :param affine: An affine variety
@@ -419,34 +439,34 @@ class Ideal(Generic[F, V]):
         self.affine = affine
         self.dimension = len(affine)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "I = {f ∈ k[x_1, ..., x_n] | f(x) = 0 ∀x ∈ V}" + "\n k = {}, V = {}".format(self.field, self.affine)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Ideal(field = {}, affine = {})".format(self.field, self.affine)
 
     def __eq__(self, other: "Ideal") -> bool:
         return self.field == other.field and self.affine == other.affine
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__str__())
 
     def __contains__(self, polynomial: Callable[[V], F]) -> bool:
         return map(polynomial(v) == 0 for v in self.affine)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Callable[[tuple[V, ...]], F]]:
         return iter(self.equations)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.equations)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Callable[[tuple[V, ...]], F]:
         return self.equations[index]
 
-    def __setitem__(self, index, polynomial: Callable[[V], F]):
-        self.affine[index] = rational_function
+    def __setitem__(self, index: int, polynomial: Callable[[tuple[V, ...]], F]) -> None:
+        self.affine[index] = polynomial
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         del self.equations[index]
 
     def __add__(self, other: "Ideal") -> "Ideal":
