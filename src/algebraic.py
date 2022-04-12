@@ -23,20 +23,21 @@ class VectorSpace(Set, Generic[F, V]):
     """
     Vector space is an abelian group under addition and an F-module of vectors with a field F
     """
-    def __init__(self, field: F, vectors: Union[Module[F, V], Group[V]]) -> None:
+    def __init__(self, vectors: Module[F, V], basis: list[V]) -> None:
         """
         :param field: A field
         :param vectors: An abelian group or a module of vectors
         """
 
-        self.field = field
+        self.field = vectors.ring
         self.vectors = vectors
-
-    def __init__(self, field: F, basis: Union[Module[F, V], Group[V]]) -> None:
-        """
+        self.basis = basis
+        
+    """def __init__(self, field: F, basis: Union[Module[F, V], Group[V]]) -> None:
+        
         :param field: A field
         :param basis: A list of vectors
-        """
+        
         self.field = field
 
         vecs = []
@@ -50,7 +51,7 @@ class VectorSpace(Set, Generic[F, V]):
             
         print(self.vectors)
 
-        self.basis = basis
+        self.basis = basis:"""
 
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
