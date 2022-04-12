@@ -15,7 +15,7 @@ from sympy.utilities.lambdify import lambdastr
 
 from soupsieve import Iterable
 from firstorder import Identity as Id
-from inference import BinaryOperator, Commutative, Inverse
+from inference import BinaryOperator, Commutative, Inverse, Distributive
 
 F = TypeVar("F", bound=Field)
 T = TypeVar("T")
@@ -125,7 +125,7 @@ class AlgebraicStructure(set[T], Generic[T]):
     Algebraic structure is a set of elements
     with binary operations on it and identities that those operations satisfy.
     """
-    def __init__(self, elements: set[T], operations: set[BinaryOperator], identities: set[Id]) -> None:
+    def __init__(self, elements: set[T], operations: list[Callable[[T, T], T]], identities: set[Id]) -> None:
         """
         :param elements: A set of elements
         :param operations: A set of binary operations
@@ -133,13 +133,14 @@ class AlgebraicStructure(set[T], Generic[T]):
         """
 
         for identity in identities:
-            C = combinations(elements, identity.vars)
             for operation in operations:
+                C = combinations(elements, identity.vars)
                 for c in C:
                     print(identity.formula(*c))
                     if not identity(*c):
-                        x, y = sympy.symbols("x,y")
-                        raise ValueError("Operation {} does not satisfy identity {}".format(lambdastr((x, y), operation(x, y)), identity))
+                        x, y = sympy.symbols("x, y")
+                        z = sympy.symbols("z")
+                        raise ValueError("Operation {} does not satisfy identity {}".format(lambdastr((x, y), operation(x, y)), lambdastr((x, y, z), identity(x, y, z))))
     
         self.elements = elements
         self.operations = operations
@@ -187,9 +188,9 @@ class Monoid(AlgebraicStructure[T]):
         :param elements: A set of elements
         :param operation: A binary operation
         """
-        super().__init__(elements, {operation}, 
-        {Id(elements, lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z))),
-        Id(elements, lambda x, e: operation(e, x) == operation(x, e) == e)})
+        super().__init__(elements, [operation], 
+        {Id(elements, lambda x, y, z: [operation(operation(x, y), z), operation(x, operation(y, z))]),
+        Id(elements, lambda x, e: [operation(e, x), operation(x, e), e])})
 
     def __str__(self) -> str:
         return "M = {}, (x, y) ↦ x * y\n there exists e ∈ M for all x, y, z ∈ M such that (x * y) * z = x * (y * z)\n and e * x = x * e = x".format(self.elements)
@@ -213,9 +214,10 @@ class Group(AlgebraicStructure[T], Generic[T]):
         :param elements: A set of elements
         :param operation: A binary operation
         """
-        super().__init__(elements, {operation}, 
-        {Id(elements, lambda x, y, z: operation(operation(x, y), z) == operation(x, operation(y, z))), 
-        Id(elements, lambda x, e, y: operation(x, e) == operation(e, x) == x and operation(x, y) == operation(y, x) == e)})
+        super().__init__(elements, [operation], 
+        {Id(elements, lambda x, y, z: [operation(operation(x, y), z), operation(x, operation(y, z))]), 
+        Id(elements, lambda x, e: [operation(x, e), operation(e, x), x]), 
+        Id(elements, lambda x, y, e: [operation(x, y), operation(y, x), e])})
 
     def __str__(self) -> str:
         return "G = {},  (x, y) ↦ x * y\n there exists e ∈ M for all x, y, z ∈ M such that (x * y) * z = x * (y * z)\n and e * x = x * e = x \n and x * y = y * x = e))".format(self.elements)
@@ -286,7 +288,7 @@ class Group(AlgebraicStructure[T], Generic[T]):
         """
         if self.is_abelian():
             new = Group(self.elements, self.operations[0])
-            new.identities.add(Id(self.elements, lambda x, y: self.operations[0](x, y) == self.operations[0](y, x)))
+            new.identities.add(Id(self.elements, lambda x, y: [self.operations[0](x, y), self.operations[0](y, x)]))
             return new
         else:
             return Group(self.elements, self.operations[0])
@@ -305,7 +307,7 @@ class Ring(AlgebraicStructure[T], Generic[T]):
             raise ValueError("The ring must have two operations")
         super().__init__(elements, operations, 
         Group(elements, operations[0]).abelian().get_identities() | Monoid(elements, operations[1]).get_identities() |
-        {Id(elements, lambda x, y: Commutative.__call__(self.operations[0](x, y), self.operations[1]))})
+        {Id(elements, lambda x, y, z: Distributive.__call__()(x, y, z, operations[1], operations[0]))})
 
     def __str__(self) -> str:
         return "R = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
@@ -353,7 +355,7 @@ class Ring(AlgebraicStructure[T], Generic[T]):
         """
         if self.is_commutative():
             new = Ring(self.elements, self.operations)
-            new.identities.add(Id(self.elements, lambda x, y: self.operations[1](x, y) == self.operations[1](y, x)))
+            new.identities.add(Id(self.elements, lambda x, y: [self.operations[1](x, y), self.operations[1](y, x)]))
             return new
         else:
             return Group(self.elements, self.operations[0])
@@ -362,7 +364,7 @@ class Ideal(Ring[T]):
     """
     An ideal is a ring with a set of generators
     """
-    def __init__(self, elements: set[T], operations: set[Callable[[T, T], T]], generators: set[T]) -> None:
+    def __init__(self, elements: set[T], operations: list[Callable[[T, T], T]], generators: set[T]) -> None:
         """
         :param elements: A set of elements
         :param operations: A set of binary operations that are associative
@@ -422,7 +424,7 @@ class Field(Ring[T], Generic[T]):
         :param operations: A set of binary operations that are associative and commutative
         """
         super().__init__(elements, operations)
-        self.identities.add(Id(elements, lambda x, y: self.operations[1](x, y) == self.operations[1](y, x)))
+        self.identities.add(Id(elements, lambda x, y: [self.operations[1](x, y), self.operations[1](y, x)]))
         self.identities.add(Id(elements, Inverse.__call__(operations[1])))
 
     def __str__(self) -> str:
@@ -481,10 +483,10 @@ class Module(Generic[R, G]):
         self.group = group
         self.operation = operation
         self.identities = {
-            Id(self.ring.elements, lambda r, x, y: self.operation(r, group.operate(x, y)) == group.operate(self.operation(r, x), self.operation(r, y))),
-            Id(self.ring.elements, lambda r, s, x: self.operation(group.operate(r, s), x) == group.operate(self.operation(r, x), self.operation(s, x))),
-            Id(self.ring.elements, lambda r, s, x: self.operation(ring.operate(r, s), x) == self.operation(r, self.operation(s, x))),
-            Id(self.group.elements, lambda x: self.operation(1, x) == x)}
+            Id(self.ring.elements, lambda r, x, y: [self.operation(r, group.operate(x, y)), group.operate(self.operation(r, x), self.operation(r, y))]),
+            Id(self.ring.elements, lambda r, s, x: [self.operation(group.operate(r, s), x), group.operate(self.operation(r, x), self.operation(s, x))]),
+            Id(self.ring.elements, lambda r, s, x: [self.operation(ring.operate(r, s), x), self.operation(r, self.operation(s, x))]),
+            Id(self.group.elements, lambda x: [self.operation(1, x), x])}
     
     def __str__(self) -> str:
         return "M = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
@@ -517,34 +519,34 @@ class Module(Generic[R, G]):
         del self.elements[index]
 
 class Metric(Generic[T], ABC):
-    """A class for representing a metric. A metric is a function that takes two arguments and returns a their distance."""
-    def __init__(self, x: T, y: T) -> None:
-        self.x = x
-        self.y = y
-
-    @abstractmethod
-    def __add__(self, other: "Metric") -> "Metric":
-        pass
-
-    def __sub__(self, other: "Metric") -> "Metric":
-        pass
+    """A metric maps two arguments from a set and returns a their distance."""
+    def __init__(self, elements: set[T], formula: Callable[[T, T], T]) -> None:
+        """
+        :param formula: A function that takes two arguments and returns a distance
+        """
+        self.elements = elements
+        self.formula = formula
 
     def indiscernible(self) -> "Metric":
         """Axiom of the indiscernibility of identicals on a metric"""
-        if self.x == self.y:
-            return 0
+        for e in self.elements:
+            if self.formula(e, e) != 0:
+                raise ValueError("The metric is not indiscernible")
 
     def symmetrical(self) -> "Metric":
         """Axiom of symmetry on a metric"""
-        return Metric(self.y, self.x)
+        for x, y in [(x, y) for x in self.elements for y in self.elements]:
+            if self.formula(x, y) != self.formula(y, x):
+                raise ValueError("The metric is not symmetrical")
 
-    def triangeInequality(self, z: T) -> float:
+    def triangeInequality(self) -> float:
         """Axiom of triange inequality on a metric"""
-        return Metric(self.x, self.y) + Metric(self.y, z) - Metric(self.x, z)
+        for x, y, z in [(x, y, z) for x in self.elements for y in self.elements for z in self.elements]:
+            if self.formula(x, y) + self.formula(y, z) < self.formula(x, z):
+                raise ValueError("The metric is not triange inequality")
 
-    @abstractmethod
     def __eq__(self, other: "Metric") -> bool:
-        pass
+        return self.elements == other.elements and self.formula == other.formula
 
     def __repr__(self) -> str:
         return f"d({self.x}, {self.y})"
