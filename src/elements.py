@@ -29,19 +29,19 @@ class Vector(Generic[T]):
     """
     A class for representing a vector.
     """
-    def __init__(self, vector: List[T]) -> None:
+    def __init__(self, coordinates: tuple[T]) -> None:
         """
-        :param vector: A list of elements
+        :param coordinates: A list of elements
         """
-        self.vector = vector
-        self.dimension = len(vector)
+        self.coordinates = coordinates
+        self.dimension = len(coordinates)
 
     def __init__(self, *args: T) -> None:
         """
         :param vector: A list of elements
         """
-        self.vector = list(args)
-        self.dimension = len(self.vector)
+        self.coordinates = tuple(args)
+        self.dimension = len(self.coordinates)
 
     @staticmethod
     def unit(dimension: int, direction: int, as_list: bool = False) -> Union["Vector", List[float]]:
@@ -56,69 +56,83 @@ class Vector(Generic[T]):
         return Vector(unit)
 
     def __str__(self) -> str:
-        return self.vector
+        return self.coordinates
 
     def __repr__(self) -> str:
-        return "Vector({})".format(self.vector)
+        return "Vector({})".format(self.coordinates)
 
     def __eq__(self, other: "Vector") -> bool:
-        return self.vector == other.vector
+        return self.coordinates == other.coordinates
 
     def __hash__(self) -> int:
         return hash(self.__str__())
 
     def __contains__(self, element: T) -> bool:
-        return element in self.vector
+        return element in self.coordinates
 
     def __iter__(self) -> Iterable[T]:
-        return iter(self.vector)
+        return iter(self.coordinates)
 
     def __len__(self) -> int:
-        return len(self.vector)
+        return len(self.coordinates)
 
     def __getitem__(self, index: int) -> T:
-        return self.vector[index]
+        return self.coordinates[index]
 
     def __setitem__(self, index: int, element: T) -> None:
-        self.vector[index] = element
+        self.coordinates[index] = element
 
     def __delitem__(self, index: int) -> None:
-        del self.vector[index]
+        del self.coordinates[index]
 
     def __add__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
         :return: The sum of the two vectors
         """
-        return Vector(*[a + b for a, b in zip(self.vector, other.vector)])
+        return Vector(*[a + b for a, b in zip(self.coordinates, other.coordinates)])
 
     def __sub__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
         :return: The difference of the two vectors
         """
-        return Vector(*[a - b for a, b in zip(self.vector, other.vector)])
+        return Vector(*[a - b for a, b in zip(self.coordinates, other.coordinates)])
 
     def __mul__(self, other: "Vector") -> T:
         """
         :param other: A vector
         :return: The dot product of the two vectors
         """
-        return sum(a * b for a, b in zip(self.vector, other.vector))
+        return sum(a * b for a, b in zip(self.coordinates, other.coordinates))
 
     def __mul__(self, other: F) -> "Vector":
         """
         :param scalar: A scalar
         :return: The product of the vector and the scalar
         """
-        return Vector(*[other * a for a in self.vector])
+        return Vector(*[other * a for a in self.coordinates])
 
     def __truediv__(self, other: "Vector") -> "Vector":
         """
         :param other: A vector
         :return: The quotient of the two vectors
         """
-        return Vector(*[a / b for a, b in zip(self.vector, other.vector)])
+        return Vector(*[a / b for a, b in zip(self.coordinates, other.coordinates)])
+
+    def __mod__(self, other: "Vector") -> "Vector":
+        """
+        :param other: A vector
+        :return: The remainder of the two vectors
+        """
+        return Vector(*[a % b for a, b in zip(self.coordinates, other.coordinates)])
+
+    def __mod__(self, other: T) -> "Vector":
+        """
+        :param other: A vector
+        :return: The remainder of the two vectors
+        """
+        return Vector(*[a % other for a in self.coordinates])
 
 class AlgebraicStructure(set[T], Generic[T]):
     """
@@ -136,7 +150,6 @@ class AlgebraicStructure(set[T], Generic[T]):
             for operation in operations:
                 C = combinations(elements, identity.vars)
                 for c in C:
-                    print(identity.formula(*c))
                     if not identity(*c):
                         x, y = sympy.symbols("x, y")
                         z = sympy.symbols("z")
@@ -162,7 +175,6 @@ class AlgebraicStructure(set[T], Generic[T]):
         :param operation: A binary operation
         :return: The set of elements that satisfy the operation
         """
-        #operation.
         return {operation(a_, b_) for a_ in a for b_ in b}
 
     def __or__(self, other: "AlgebraicStructure") -> "AlgebraicStructure":
@@ -472,12 +484,13 @@ G = TypeVar("G")
 class Module(Generic[R, G]):
     """
     A Module (R-module) is a ring with an abelian group under addition
-    with two binary operations on them and identities that this operations satisfies.
+    with a binary operation mapping ring and a group to a group
     """
     def __init__(self, ring: Ring[R], group: Group[G], operation: Callable[[R, G], G]) -> None:
         """
-        :param elements: A set of elements
-        :param operations: A set of binary operations that are associative
+        :param ring: A ring
+        :param group: An abelian group
+        :param operation: A binary operation mapping ring and group to a group
         """
         self.ring = ring
         self.group = group

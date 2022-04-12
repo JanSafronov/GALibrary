@@ -44,14 +44,14 @@ class VectorSpace(Set, Generic[F, V]):
         for v in basis:
             vecs.append([v * λ for λ in field])
 
-        self.vectors : list[V] = vecs[0]
-        print(vecs)
+        self.vectors = vecs[0]
         for i in range(len(vecs) - 1):
-            print([[v, u] for v in self.vectors for u in vecs[i + 1]])
             self.vectors = [v + u for v in self.vectors for u in vecs[i + 1]]
-            print(self.vectors)
-
+            
         print(self.vectors)
+
+        self.basis = basis
+
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
 
@@ -128,11 +128,8 @@ class VectorSpace(Set, Generic[F, V]):
         """
         :return: A parametric equation for the vector space
         """
-        print(self.vectors)
-        mcrossp = np.cross(self.vectors[0], self.vectors[1])
-        print(mcrossp)
+        mcrossp = np.cross(self.basis[0].coordinates, self.basis[1].coordinates)
         dim = len(mcrossp)
-        print(sum(mcrossp[:dim - 1] / mcrossp[dim - 1] * [2, 3]))
         return lambda x: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * x[i] for i in range(dim - 1))
 
 class AffineSpace():
@@ -199,7 +196,7 @@ class AffineSpace():
         """
         :return: A parametric equation for the affine space
         """
-        mcrossp = np.cross(self.vector_space.vectors[0], self.vector_space.vectors[1])
+        mcrossp = np.cross(self.vector_space.basis[0].coordinates, self.vector_space.basis[1].coordinates)
         dim = len(mcrossp)
         return lambda Λ: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * (Λ[i] + self.point[i]) for i in range(dim - 1))
 
