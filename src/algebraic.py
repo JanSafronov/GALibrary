@@ -284,7 +284,6 @@ class AffineVariety(Generic[F, V]):
         :param affine_space: An affine space
         :return: The solutions of the affine variety in the affine space
         """
-        print(np.roots(self.equations))
         return set(filter(lambda T: self.equations[i](T) == self.field.zero for i in range(self.dimension)))
 
 class RationalFunction(Generic[F, V]):

@@ -336,6 +336,12 @@ class Ring(AlgebraicStructure[T], Generic[T]):
     def __contains__(self, element: T) -> bool:
         return element in self.elements
 
+    def __ge__(self, __s: set[T]) -> bool:
+        """
+        Subgroup relation
+        """
+        return __s in self and Group(__s, self.operation[0])
+
     def __iter__(self) -> Iterator[T]:
         return iter(self.elements)
 
@@ -372,18 +378,21 @@ class Ring(AlgebraicStructure[T], Generic[T]):
         else:
             return Group(self.elements, self.operations[0])
 
-class Ideal(Ring[T]):
+class Ideal(Group[T]):
     """
-    An ideal is a ring with a set of generators
+    An ideal of a ring is the additive subgroup of it's additive group with their product being the ideal.
     """
-    def __init__(self, elements: set[T], operations: list[Callable[[T, T], T]], generators: set[T]) -> None:
+    def __init__(self, ring: Ring[T], elements: set[T]) -> None:
         """
+        :param ring: A ring
         :param elements: A set of elements
-        :param operations: A set of binary operations that are associative
-        :param generators: A set of generators
         """
-        super().__init__(elements, operations)
-        self.generators = generators
+        self.ring = ring
+        if not elements < self.ring:
+            raise ValueError("The elements must be a subset of the ring")
+        if not ring.operations[1](elements, ring.elements) in elements:
+            raise ValueError("The products of the elements and ring's elements must be in the elements")
+        super().__init__(elements, ring.operations[0])
 
     def __str__(self) -> str:
         return "I = {},  {}\n  {})".format(self.elements, self.operations[0], self.identities)
@@ -423,6 +432,24 @@ class Ideal(Ring[T]):
         if self.operations != other.operations:
             raise ValueError("The ideals are not operable")
         return Ideal(set(map(lambda a, b: a + b, self.elements, other.elements)), self.operations, self.generators)
+
+    def radical(self, equations: list[Callable[[T, T], bool]]) -> "Ideal":
+        """
+        :param equations: A list of equations
+        :return: The radical ideal of the ideal
+        """
+        if not all(map(lambda x: x(self.elements[0], self.elements[0]), equations)):
+            raise ValueError("The equations must be satisfied by the elements")
+        new = Ideal(self.ring, self.elements)
+        new.identities.add(Id(self.elements, lambda x, y: [x, y]))
+        return new
+
+    @staticmethod
+    def generate(self, equations: set[Callable[[tuple[Vector, ...]], F]]) -> set[Callable[[tuple[Vector, ...]], F]]:
+        """
+        :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space's polynomial ring
+        """
+        return set(map(lambda x: lambda g, y: sum(map(lambda f: g(y) * f(y), x)), equations))
 
 class Field(Ring[T], Generic[T]):
     """
