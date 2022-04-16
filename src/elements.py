@@ -427,11 +427,24 @@ class Ideal(Group[T]):
     def __add__(self, other: "Ideal") -> "Ideal":
         """
         :param other: An ideal
-        :return: The sum of the two ideals
+        :return: The sum of two ideals with the same ring
         """
+        if self.ring != other.ring:
+            raise ValueError("The ideals must have the same ring")
         if self.operations != other.operations:
             raise ValueError("The ideals are not operable")
-        return Ideal(set(map(lambda a, b: a + b, self.elements, other.elements)), self.operations, self.generators)
+        return Ideal(self.ring, {self.operations[0](x, y) for x in self.elements for y in other.elements})
+
+    def __mul__(self, other: "Ideal") -> "Ideal":
+        """
+        :param other: An ideal
+        :return: The product of two ideals with the same ring
+        """
+        if self.ring != other.ring:
+            raise ValueError("The ideals must have the same ring")
+        if self.operations != other.operations:
+            raise ValueError("The ideals are not operable")
+        return Ideal(self.ring, {map(sum())}) #{self.operations[1](x, y) for x in self.elements for y in other.elements})
 
     def radical(self, equations: list[Callable[[T, T], bool]]) -> "Ideal":
         """
@@ -445,11 +458,11 @@ class Ideal(Group[T]):
         return new
 
     @staticmethod
-    def generate(self, equations: set[Callable[[tuple[Vector, ...]], F]]) -> set[Callable[[tuple[Vector, ...]], F]]:
+    def generate(ring: Ring[T], equations: set[Callable[[tuple[Vector, ...]], F]]) -> set[Callable[[tuple[Vector, ...]], F]]:
         """
         :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space's polynomial ring
         """
-        return set(map(lambda x: lambda g, y: sum(map(lambda f: g(y) * f(y), x)), equations))
+        return Ideal(ring, )
 
 class Field(Ring[T], Generic[T]):
     """

@@ -500,3 +500,54 @@ class Ideal(Generic[F, V]):
         :return: The reduction of the polynomial
         """
         return lambda X: polynomial(X) / math.gcd(polynomial(X), np.gradient(polynomial(X)))
+        
+class IdealSet(Generic[F, V]):
+    """
+    An ideal set is a set of ideals
+    """
+    def __init__(self, ideals: set[Ideal[F, V]]) -> None:
+        """
+        :param ideals: A set of ideals
+        """
+        self.ideals = ideals
+        self.field = ideals.pop().field
+        self.dimension = ideals.pop().dimension
+
+    def __str__(self) -> str:
+        return "I = {I_1, ..., I_n | I_i ∈ I}" + "\n I = {}".format(self.ideals)
+
+    def __repr__(self) -> str:
+        return "IdealSet(ideals = {})".format(self.ideals)
+
+    def __eq__(self, other: "IdealSet") -> bool:
+        return self.field == other.field and self.ideals == other.ideals
+
+    def __hash__(self) -> int:
+        return hash(self.__str__())
+
+    def __contains__(self, ideal: Ideal[F, V]) -> bool:
+        return ideal in self.ideals
+
+    def __iter__(self) -> Iterator[Ideal[F, V]]:
+        return iter(self.ideals)
+
+    def __len__(self) -> int:
+        return len(self.ideals)
+
+    def __getitem__(self, index: int) -> Ideal[F, V]:
+        return self.ideals[index]
+
+    def __setitem__(self, index: int, ideal: Ideal[F, V]) -> None:
+        self.ideals[index] = ideal
+
+    def __delitem__(self, index: int) -> None:
+        del self.ideals[index]
+
+    def __add__(self, other: "IdealSet") -> "IdealSet":
+        """
+        :param other: An ideal set
+        :return: The sum of the two ideal sets
+        """
+        if self.field != other.field:
+            raise ValueError("The ideal sets are not in the same field")
+        return IdealSet
