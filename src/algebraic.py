@@ -32,26 +32,6 @@ class VectorSpace(Set, Generic[F, V]):
         self.field = vectors.ring
         self.vectors = vectors
         self.basis = basis
-        
-    """def __init__(self, field: F, basis: Union[Module[F, V], Group[V]]) -> None:
-        
-        :param field: A field
-        :param basis: A list of vectors
-        
-        self.field = field
-
-        vecs = []
-        
-        for v in basis:
-            vecs.append([v * λ for λ in field])
-
-        self.vectors = vecs[0]
-        for i in range(len(vecs) - 1):
-            self.vectors = [v + u for v in self.vectors for u in vecs[i + 1]]
-            
-        print(self.vectors)
-
-        self.basis = basis:"""
 
     def __str__(self):
         return "V = {} vector space over field F = {}".format(self.vectors, self.field)
@@ -65,7 +45,10 @@ class VectorSpace(Set, Generic[F, V]):
     def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, vector) -> bool:
+    def __contains__(self, vector: Vector) -> bool:
+        return vector in self.vectors
+    
+    def __contains__(self, vector: Vector) -> bool:
         return vector in self.vectors
 
     def __iter__(self) -> Iterator[V]:
@@ -157,7 +140,10 @@ class AffineSpace():
     def __hash__(self) -> int:
         return hash(self.__str__())
 
-    def __contains__(self, vector: int) -> bool:
+    def __contains__(self, vector) -> bool:
+        return vector in self.vectors
+
+    def __contains__(self, vector: Vector) -> bool:
         return vector in self.vector_space
 
     def __iter__(self) -> Iterator[int]:
@@ -398,9 +384,6 @@ class Monomial(Generic[F, V]):
         y_values = np.linspace(y_range[0], y_range[1], resolution)
         X, Y = np.meshgrid(x_values, y_values)
         Z = self.monomial([X, Y])
-        #Z = Z.reshape(X.shape)
-        plt.plot
-        #plt.colorbar()
         plt.show()
 
     def plot3d(self, x_range: tuple[float, float], y_range: tuple[float, float], z_range: tuple[float, float], resolution: int = 100) -> None:
@@ -421,7 +404,6 @@ class Monomial(Generic[F, V]):
         ax = fig.add_subplot(111, projection='3d')
         ax.plot_surface(X, Y, Z, cmap=plt.cm.jet)
         plt.show()
-        
 
 class Ideal(Generic[F, V]):
     """
@@ -488,7 +470,7 @@ class Ideal(Generic[F, V]):
     @staticmethod
     def generate(self, equations: set[Callable[[tuple[V, ...]], F]]) -> set[Callable[[tuple[V, ...]], F]]:
         """
-        :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space
+        :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space's polynomial ring
         """
         return Ideal(self.field, AffineVariety(self.field, equations))
 
@@ -500,54 +482,9 @@ class Ideal(Generic[F, V]):
         :return: The reduction of the polynomial
         """
         return lambda X: polynomial(X) / math.gcd(polynomial(X), np.gradient(polynomial(X)))
-        
-class IdealSet(Generic[F, V]):
+
+def zariski(affine: AffineSpace) -> Ideal[F, V]:
     """
-    An ideal set is a set of ideals
+    :param affine: An affine space
     """
-    def __init__(self, ideals: set[Ideal[F, V]]) -> None:
-        """
-        :param ideals: A set of ideals
-        """
-        self.ideals = ideals
-        self.field = ideals.pop().field
-        self.dimension = ideals.pop().dimension
-
-    def __str__(self) -> str:
-        return "I = {I_1, ..., I_n | I_i ∈ I}" + "\n I = {}".format(self.ideals)
-
-    def __repr__(self) -> str:
-        return "IdealSet(ideals = {})".format(self.ideals)
-
-    def __eq__(self, other: "IdealSet") -> bool:
-        return self.field == other.field and self.ideals == other.ideals
-
-    def __hash__(self) -> int:
-        return hash(self.__str__())
-
-    def __contains__(self, ideal: Ideal[F, V]) -> bool:
-        return ideal in self.ideals
-
-    def __iter__(self) -> Iterator[Ideal[F, V]]:
-        return iter(self.ideals)
-
-    def __len__(self) -> int:
-        return len(self.ideals)
-
-    def __getitem__(self, index: int) -> Ideal[F, V]:
-        return self.ideals[index]
-
-    def __setitem__(self, index: int, ideal: Ideal[F, V]) -> None:
-        self.ideals[index] = ideal
-
-    def __delitem__(self, index: int) -> None:
-        del self.ideals[index]
-
-    def __add__(self, other: "IdealSet") -> "IdealSet":
-        """
-        :param other: An ideal set
-        :return: The sum of the two ideal sets
-        """
-        if self.field != other.field:
-            raise ValueError("The ideal sets are not in the same field")
-        return IdealSet
+    return Ideal.generate(ideal.field, {Ideal.reduce(polynomial) for polynomial in ideal})

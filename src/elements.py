@@ -385,7 +385,7 @@ class Ideal(Group[T]):
     def __init__(self, ring: Ring[T], elements: set[T]) -> None:
         """
         :param ring: A ring
-        :param elements: A set of elements
+        :param elements: A set of elements in the ring
         """
         self.ring = ring
         if not elements < self.ring:
@@ -424,6 +424,22 @@ class Ideal(Group[T]):
     def __delitem__(self, index: int) -> None:
         del self.elements[index]
 
+    def __and__(self, other: "Ideal") -> "Ideal":
+        """
+        :return: The intersection of the ideals
+        """
+        if not self.ring == other.ring:
+            raise ValueError("The ideals must be in the same ring")
+        return Ideal(self.ring, self.elements & other.elements)
+    
+    def __or__(self, other: "Ideal") -> "Ideal":
+        """
+        :return: The union of the ideals
+        """
+        if not self.ring == other.ring:
+            raise ValueError("The ideals must be in the same ring")
+        return Ideal(self.ring, self.elements | other.elements)
+
     def __add__(self, other: "Ideal") -> "Ideal":
         """
         :param other: An ideal
@@ -444,9 +460,11 @@ class Ideal(Group[T]):
             raise ValueError("The ideals must have the same ring")
         if self.operations != other.operations:
             raise ValueError("The ideals are not operable")
-        return Ideal(self.ring, {map(sum())}) #{self.operations[1](x, y) for x in self.elements for y in other.elements})
 
-    def radical(self, equations: list[Callable[[T, T], bool]]) -> "Ideal":
+        return Ideal.generate(Ring(other.element, other.operations), self.elements)
+        # Generate with the other ideal masked as a ring
+
+    def radical(self) -> "Ideal":
         """
         :param equations: A list of equations
         :return: The radical ideal of the ideal
@@ -458,11 +476,15 @@ class Ideal(Group[T]):
         return new
 
     @staticmethod
-    def generate(ring: Ring[T], equations: set[Callable[[tuple[Vector, ...]], F]]) -> set[Callable[[tuple[Vector, ...]], F]]:
+    def generate(ring: Ring[T], elements: set[T]) -> "Ideal":
         """
         :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space's polynomial ring
         """
-        return Ideal(ring, )
+        if len(elements) == 1:
+            elements = list(elements)
+            return Ideal(ring, set(map(lambda r: ring.operations[1](r, elements[0]), ring)))
+        
+        return sum(map(lambda i: Ideal(ring, set(map(lambda r: ring.operations[1](r, elements[i]), ring))), range(len(elements))))
 
 class Field(Ring[T], Generic[T]):
     """
