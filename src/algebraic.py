@@ -461,6 +461,17 @@ class Ideal(Generic[F, V]):
             raise ValueError("The ideals are not the same dimension")
         return Ideal(self.field, AffineVariety(self.field, [self.equations[i] + other.equations[i] for i in range(self.dimension)]))
 
+    def __div__(self, other: "Ideal") -> "Ideal":
+        """
+        :param other: An ideal
+        :return: The division of the two ideals
+        """
+        if self.field != other.field:
+            raise ValueError("The ideals are not in the same field")
+        if self.dimension != other.dimension:
+            raise ValueError("The ideals are not the same dimension")
+        return Ideal(self.field, AffineVariety(self.field, [self.equations[i] / other.equations[i] for i in range(self.dimension)]))
+
     def is_monomial(self) -> bool:
         """
         :return: True if the ideal is a monomial ideal
@@ -487,4 +498,4 @@ def zariski(affine: AffineSpace) -> Ideal[F, V]:
     """
     :param affine: An affine space
     """
-    return Ideal.generate(ideal.field, {Ideal.reduce(polynomial) for polynomial in ideal})
+    return AffineVariety(affine.field, Ideal(affine.field, affine).equations)
