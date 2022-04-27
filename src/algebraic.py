@@ -188,7 +188,7 @@ class AffineSpace():
         return lambda Λ: sum((mcrossp[:dim - 1] / mcrossp[dim - 1])[i] * (Λ[i] + self.point[i]) for i in range(dim - 1))
 
 class AffineVariety(Generic[F, V]):
-    """ 
+    """
     An affine variety is a set of solutions of a system of polynomial equations with coefficients in the field
     """
     def __init__(self, field: F, equations: set[Callable[[tuple[V, ...]], F]]) -> None:
@@ -242,6 +242,10 @@ class AffineVariety(Generic[F, V]):
         if self.dimension != other.dimension:
             raise ValueError("The affine varieties are not the same dimension")
         return AffineVariety(self.field, self.equations | other.equations)
+
+    def __del__(self) -> None:
+        del self.field
+        del self.equations
 
     def __or__(self, other: "AffineVariety") -> "AffineVariety":
         """
@@ -470,7 +474,32 @@ class Ideal(Generic[F, V]):
             raise ValueError("The ideals are not in the same field")
         if self.dimension != other.dimension:
             raise ValueError("The ideals are not the same dimension")
-        return Ideal(self.field, AffineVariety(self.field, [self.equations[i] / other.equations[i] for i in range(self.dimension)]))
+        return Ideal(self.field, self.affine - other.affine)
+
+    def prime(self) -> bool:
+        """
+        :return: Whether the ideal is prime
+        """
+        return Ideal.generate(
+        )
+
+    def proper(self) -> bool:
+        """
+        :return: Whether the ideal is proper
+        """
+        return self != Ideal(self.field, self.field)
+
+    def primary(self) -> bool:
+        """
+        :return: Whether the ideal is primary
+        """
+        pass
+
+    def irreducable(self) -> bool:
+        """
+        :return: True if the ideal is irreducible, False otherwise
+        """
+        return Ideal(self.field, self.affine).is_prime()
 
     def is_monomial(self) -> bool:
         """
@@ -479,11 +508,11 @@ class Ideal(Generic[F, V]):
         return Ideal.generate(self.field, self.affine.equations) == self
     
     @staticmethod
-    def generate(self, equations: set[Callable[[tuple[V, ...]], F]]) -> set[Callable[[tuple[V, ...]], F]]:
+    def generate(field: F, equations: set[Callable[[tuple[V, ...]], F]]) -> set[Callable[[tuple[V, ...]], F]]:
         """
         :return: A set of linear combinations of ideal's polynomials with polynomials from the affine space's polynomial ring
         """
-        return Ideal(self.field, AffineVariety(self.field, equations))
+        return Ideal(field, AffineVariety(field, equations))
 
     @staticmethod
     def reduce(polynomial: Callable[[tuple[V, ...]], F]) -> Callable[[tuple[V, ...]], F]:

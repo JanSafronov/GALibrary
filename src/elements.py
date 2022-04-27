@@ -464,6 +464,19 @@ class Ideal(Group[T]):
         return Ideal.generate(Ring(other.element, other.operations), self.elements)
         # Generate with the other ideal masked as a ring
 
+    def __div__(self, other: "Ideal") -> "Ideal":
+        """
+        :param other: An ideal
+        :return: The quotient of two ideals with the same ring
+        """
+        if self.ring != other.ring:
+            raise ValueError("The ideals must have the same ring")
+        if self.operations != other.operations:
+            raise ValueError("The ideals are not operable")
+
+        return Ideal.generate(Ring(self.element, self.operations), other.elements)
+        # Fix later
+
     def radical(self) -> "Ideal":
         """
         :param equations: A list of equations
