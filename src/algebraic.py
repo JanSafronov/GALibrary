@@ -276,6 +276,14 @@ class AffineVariety(Generic[F, V]):
         """
         return set(filter(lambda T: self.equations[i](T) == self.field.zero for i in range(self.dimension)))
 
+    def polynomial_mapping(self, map: Callable[[tuple[V, ...]], tuple["AffineVariety", ...]]) -> bool:
+        """
+        :return: A polynomial mapping of the affine variety
+        """
+        #for element in map:
+        pass
+
+
 class RationalFunction(Generic[F, V]):
     """
     A rational function with coefficients in a field is a quotient of two polynomials 
@@ -475,6 +483,15 @@ class Ideal(Generic[F, V]):
         if self.dimension != other.dimension:
             raise ValueError("The ideals are not the same dimension")
         return Ideal(self.field, self.affine - other.affine)
+
+    def __mod__(self, other: Callable[[tuple[V, ...]], F]) -> Callable[[tuple[V, ...]], F]:
+        """
+        :param other: A polynomial
+        :return: The remainder of the ideal and the polynomial
+        """
+        if self.field != other.field:
+            raise ValueError("The ideal and the polynomial are not in the same field")
+        return lambda X: self.affine.map(lambda f: f(X) % other(X))
 
     def prime(self) -> bool:
         """
