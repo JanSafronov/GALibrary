@@ -283,7 +283,6 @@ class AffineVariety(Generic[F, V]):
         #for element in map:
         pass
 
-
 class RationalFunction(Generic[F, V]):
     """
     A rational function with coefficients in a field is a quotient of two polynomials 
@@ -491,7 +490,7 @@ class Ideal(Generic[F, V]):
         """
         if self.field != other.field:
             raise ValueError("The ideal and the polynomial are not in the same field")
-        return lambda X: self.affine.map(lambda f: f(X) % other(X))
+        return lambda X: self.affine.map(lambda f: other(X) - f(X))
 
     def prime(self) -> bool:
         """

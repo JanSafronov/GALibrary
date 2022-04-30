@@ -378,6 +378,28 @@ class Ring(AlgebraicStructure[T], Generic[T]):
         else:
             return Group(self.elements, self.operations[0])
 
+    def isomorphism(self, map: Callable[[T], T], other: "Ring", homomorphism: bool) -> bool:
+        """
+        :param other: A ring
+        :return: The isomorphism between the two rings
+        """
+        if self.elements != other.elements or self.operations != other.operations:
+            raise ValueError("The rings are not the same")
+        
+        for a, b in [(x, y) for x in self.elements for y in self.elements]:
+            if map(self.operations[0](a, b)) != self.operations[0](map(a), map(b)):
+                return False
+            if map(self.operations[1](a, b) != self.operations[1](map(a), map(b))):
+                return False
+            if (not homomorphism) and a != b and map(a) == map(b):
+                return False
+            
+            if homomorphism:
+                if map(1) != 1:
+                    return False
+        return True
+            
+
 class Ideal(Group[T]):
     """
     An ideal of a ring is the additive subgroup of it's additive group with their product being the ideal.

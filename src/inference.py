@@ -206,8 +206,8 @@ class Distributive(BinaryOperator[T], Generic[T], Lambda, ABC):
         self.op0 = op0
         self.op1 = op1
 
-    def __call__(self, a: T, b: T) -> list[T]:
-        return [self.op0(a, b), self.op1(a, b)]
+    def __call__(self, a: T, b: T, c: T) -> list[T]:
+        return [self.op0(a, self.op1(b, c)), self.op1(self.op0(a, b), self.op0(a, c))]
 
     @staticmethod
     def __call__() -> "Distributive":
